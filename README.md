@@ -61,7 +61,7 @@ São três suítes, e todas usam notas fictícias:
 - `testes/teste_navegador.mjs`: as três ferramentas no Chrome ou Edge sem janela, servidas com os cabeçalhos do `render.yaml`. Confere os Excel baixados, a impressão, a tela de celular e que não há violação da CSP nem erro de console.
 - `testes/teste_atualizacao.mjs`: simula deploys com uma aba aberta e leva cerca de 2 minutos.
 
-O navegador é achado sozinho (Edge ou Chrome). Se precisar, informe o caminho na variável `NAVEGADOR`. Com `CAPTURAS=<pasta>`, o teste de navegador grava capturas de tela e o PDF do fechamento.
+O navegador é achado sozinho (Edge ou Chrome). Se precisar, informe o caminho na variável `NAVEGADOR`. Com `CAPTURAS=<pasta>`, o teste de navegador grava capturas de tela e o PDF do fechamento. Com `SITE=<url>`, ele testa o site publicado em vez da pasta `public/`, por exemplo `SITE=https://seu-site.onrender.com/ node testes/teste_navegador.mjs`.
 
 No GitHub, a automação **Testes** roda tudo isso a cada push e manda e-mail se algo falhar.
 

@@ -1,6 +1,7 @@
 // Testes no navegador (Chrome ou Edge, sem janela), com o site servido com os cabeçalhos do render.yaml.
 // Cobre as três ferramentas, os relatórios em Excel, a impressão (Salvar PDF) e a tela de celular.
 // Uso: node build.mjs && node testes/teste_navegador.mjs
+// Com SITE=<url>, testa o site publicado (por exemplo, o do Render) em vez de public/ servido localmente.
 // Com CAPTURAS=<pasta>, grava capturas de tela e o PDF impresso do fechamento para conferência visual.
 import { mkdtempSync, writeFileSync, readdirSync, readFileSync, mkdirSync, existsSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -12,7 +13,8 @@ import { servir, abrirNavegador, novaPagina, espera } from './servidor.mjs';
 
 const { ok, igual, fim } = criarVerificador();
 const pub = fileURLToPath(new URL('public/', raiz));
-if (!existsSync(join(pub, 'index.html'))) throw new Error('public/index.html não existe: rode node build.mjs antes');
+const site = process.env.SITE;
+if (!site && !existsSync(join(pub, 'index.html'))) throw new Error('public/index.html não existe: rode node build.mjs antes');
 const tmp = mkdtempSync(join(tmpdir(), 'auditor-rtc-'));
 const downloads = join(tmp, 'downloads');
 mkdirSync(downloads);
@@ -55,7 +57,8 @@ async function arrastar(page, sel) {
   return page.evaluate(() => localStorage.getItem('rtc.cbs27'));
 }
 
-const srv = await servir(pub);
+const srv = site ? { url: site, fechar: async () => {} } : await servir(pub);
+if (site) console.log(`testando o site publicado: ${site}`);
 const navegador = await abrirNavegador();
 try {
   const page = await novaPagina(navegador);
