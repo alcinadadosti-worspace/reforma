@@ -1,0 +1,65 @@
+# Toda segunda-feira baixa a calculadora oficial da Receita (ReceitaFederal/calculadora-rtc-regime-regular), regera
+# dados/tabelas_rtc.json e, se algo mudou, roda os testes e publica o commit na main. O Render faz o deploy e as abas
+# abertas do site se atualizam sozinhas. Também dá para rodar na hora: Actions > Atualizar tabelas da Receita > Run workflow.
+name: Atualizar tabelas da Receita
+
+on:
+  schedule:
+    - cron: '0 9 * * 1'   # segunda-feira, 6h no horário de Brasília
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: atualizar-tabelas
+  cancel-in-progress: false
+
+jobs:
+  atualizar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Baixar as migrations da calculadora da Receita
+        run: git clone --depth 1 https://github.com/ReceitaFederal/calculadora-rtc-regime-regular.git "$RUNNER_TEMP/receita"
+
+      - name: Gerar as tabelas
+        id: tabelas
+        run: |
+          python3 ferramentas/atualizar_tabelas.py "$RUNNER_TEMP/receita/flyway/sql" dados/tabelas_rtc.json | tee "$RUNNER_TEMP/resumo.txt"
+          if git diff --quiet -- dados/tabelas_rtc.json; then
+            echo "mudou=nao" >> "$GITHUB_OUTPUT"
+            echo "Tabelas sem mudança." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "mudou=sim" >> "$GITHUB_OUTPUT"
+            { echo '### As tabelas da Receita mudaram'; echo; sed 's/^/    /' "$RUNNER_TEMP/resumo.txt"; } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Testar com as tabelas novas
+        if: steps.tabelas.outputs.mudou == 'sim'
+        run: |
+          npm ci
+          npm test
+
+      - name: Publicar na main (o Render faz o deploy)
+        if: steps.tabelas.outputs.mudou == 'sim'
+        run: |
+          {
+            echo "Tabelas da Receita atualizadas: $(head -1 "$RUNNER_TEMP/resumo.txt" | sed 's/ (.*//; s/^tabelas //')"
+            echo
+            tail -n +2 "$RUNNER_TEMP/resumo.txt"
+            echo
+            echo "Gerado por ferramentas/atualizar_tabelas.py a partir do commit $(git -C "$RUNNER_TEMP/receita" rev-parse --short HEAD) de ReceitaFederal/calculadora-rtc-regime-regular."
+          } > "$RUNNER_TEMP/mensagem.txt"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add dados/tabelas_rtc.json
+          git commit -F "$RUNNER_TEMP/mensagem.txt"
+          git push

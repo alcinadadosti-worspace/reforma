@@ -1,0 +1,29 @@
+# Roda os testes do app a cada push e pull request: lógica, navegador (Chrome sem janela, com os cabeçalhos do
+# render.yaml) e a simulação de deploy com a aba aberta. Se falhar, o GitHub avisa por e-mail.
+name: Testes
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar as dependências de teste
+        run: npm ci
+
+      - name: Build e testes (lógica, navegador e atualização automática)
+        run: npm test
