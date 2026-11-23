@@ -150,7 +150,6 @@ tr.r-info td:first-child { box-shadow: inset 6px 0 0 var(--neutral); }
 .prod { font-weight: 600; }
 .sub2 { color: var(--muted); font-size: 12px; }
 .empty { padding: 24px; text-align: center; color: var(--muted); }
-.foot { font-size: 12px; color: var(--muted); display: grid; gap: 4px; }
 .err-msg { padding: 14px 16px; border: var(--bw) solid var(--line); background: var(--bad); color: var(--bad-ink); font-weight: 600; }
 .example-flag { font: 800 11px var(--font-mono); text-transform: uppercase; letter-spacing: .08em; background: var(--ink); color: var(--surface); padding: 3px 8px; display: inline-block; }
 [hidden] { display: none !important; }
@@ -327,10 +326,6 @@ button.rm { padding: 2px 8px; font-size: 12px; box-shadow: 2px 2px 0 var(--line)
     </div>
   </div>
 
-  <footer class="foot">
-    <span>Tabelas oficiais da calculadora da Receita Federal (repositório calculadora-rtc-regime-regular, base <span id="ver" class="mono"></span>): CST, cClassTrib, percentuais de redução e NCMs vinculados. Regras: LC 214/2025, NT 2025.002-RTC e Ato Conjunto RFB/CGIBS 4/2026.</span>
-    <span>A alíquota da CBS de 2027 ainda não foi fixada pelo Senado (prazo 15/12/2026). Ferramenta de apoio: não substitui a contabilidade.</span>
-  </footer>
 </div>
 
 <div class="aviso-versao" id="aviso-versao" role="status" aria-live="polite" hidden></div>
@@ -725,7 +720,6 @@ function criarCore(T, DOMP) {
   const TAB = JSON.parse(document.getElementById('tabelas').textContent);
   const core = criarCore(TAB, DOMParser);
   const { brl, pct, fmtNCM, fmtDoc, dataBR } = core;
-  document.getElementById('ver').textContent = TAB.versao;
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* sem armazenamento */ } } };
   const cfg = { cnpj: store.get('rtc.cnpj') || '', cbs27: parseFloat(store.get('rtc.cbs27')) || 11.2 };
@@ -823,8 +817,13 @@ function criarCore(T, DOMP) {
       const done = () => { b.textContent = 'Copiado'; setTimeout(() => { b.textContent = 'Copiar'; }, 1400); };
       try { navigator.clipboard.writeText(t).then(done, () => selecionar(b)); } catch (e) { selecionar(b); }
     }));
+    // Arrastando: só o número ao lado muda. Ao soltar (change), recalcula e redesenha. Redesenhar durante o
+    // arraste trocava o controle por outro e o arraste parava no primeiro passo.
     const sl = out.querySelector('#cbs-range');
-    if (sl) sl.addEventListener('input', () => { cfg.cbs27 = parseFloat(sl.value); store.set('rtc.cbs27', String(cfg.cbs27)); syncSeg(); syncCbsCalc(); renderCalc(); reanalisar(); const n = document.getElementById('cbs-range'); if (n) n.focus(); });
+    if (sl) {
+      sl.addEventListener('input', () => { const v = sl.nextElementSibling; if (v) v.textContent = pct(Math.round(parseFloat(sl.value) * 10) / 10); });
+      sl.addEventListener('change', () => { setCbs(parseFloat(sl.value)); const n = document.getElementById('cbs-range'); if (n) n.focus(); });
+    }
   }
   function selecionar(b) { const s = b.previousElementSibling; if (!s) return; const rg = document.createRange(); rg.selectNodeContents(s); const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(rg); }
 
