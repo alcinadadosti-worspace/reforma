@@ -180,6 +180,45 @@ button.rm { padding: 2px 8px; font-size: 12px; box-shadow: 2px 2px 0 var(--line)
 /* aviso de versão nova */
 .aviso-versao { position: fixed; z-index: 20; left: 50%; bottom: 18px; transform: translateX(-50%); width: min(560px, calc(100% - 32px)); display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; padding: 12px 16px; background: var(--ink); color: var(--surface); border: var(--bw) solid var(--line); box-shadow: var(--sh) var(--sh) 0 var(--accent); font-weight: 700; }
 .aviso-versao button { box-shadow: 3px 3px 0 var(--accent); padding: 6px 12px; }
+
+/* fechamento do mês */
+.prog { height: 24px; border: var(--bw) solid var(--line); background: var(--tint); position: relative; overflow: hidden; }
+.prog .fill { position: absolute; inset: 0 auto 0 0; background: var(--accent); }
+select { font: 600 14px var(--font-mono); color: var(--ink); background: var(--surface); border: var(--bw) solid var(--line); padding: 7px 10px; }
+select:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+table.compacta { min-width: 0; }
+.fbarra { padding: 14px 18px; display: flex; flex-wrap: wrap; gap: 14px 24px; align-items: flex-end; justify-content: space-between; }
+.fbarra .grupo { display: flex; flex-wrap: wrap; gap: 14px 24px; align-items: flex-end; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.probs { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.probs li { border: 2px solid var(--line); padding: 10px 12px; display: grid; gap: 4px; background: var(--surface); }
+.probs .topo { display: flex; gap: 8px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.probs .det { color: var(--muted); font-size: 13px; }
+td.neg { color: var(--bad); }
+details summary { cursor: pointer; font-weight: 700; }
+.acoes-rel { display: flex; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
+#out > .acoes-rel { margin-bottom: 18px; }
+#f-out { display: grid; gap: 22px; }
+table.compacta tfoot td { font-weight: 800; border-top: var(--bw) solid var(--line); }
+.so-impressao { display: none; }
+
+/* impressão / Salvar PDF: só o conteúdo, numa coluna, sem controles */
+@media print {
+  @page { size: A4; margin: 12mm; }
+  :root { --bg: #ffffff; --surface: #ffffff; --tint: #f3f3f3; }
+  body { font-size: 11px; }
+  .wrap { padding: 0; gap: 12px; max-width: none; }
+  .top .ctrls, .modos, .drop, .exrow, #tabs, .acoes, .acoes-rel, .slider, .slider2, .aviso-versao, button, #modo-credito .grid > .col:first-child, .sem-impressao { display: none !important; }
+  .so-impressao { display: block; font: 600 11px var(--font-mono); border-bottom: 2px solid var(--line); padding-bottom: 6px; }
+  .grid { grid-template-columns: minmax(0, 1fr) !important; gap: 12px; }
+  .col { gap: 12px; }
+  .box, .verdict, .tab, .mark { box-shadow: none !important; }
+  .tw { overflow: visible; }
+  table, table.lista { min-width: 0 !important; font-size: 10px; }
+  th, td { padding: 4px 6px; }
+  tr, .checks li, .probs li, .verdict, .bar { break-inside: avoid; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
 .mini { display: none; margin: 0; font: 900 20px var(--font-display); font-variant-numeric: tabular-nums; }
 .so-cel { display: none; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -226,7 +265,26 @@ button.rm { padding: 2px 8px; font-size: 12px; box-shadow: 2px 2px 0 var(--line)
 
   <div class="modos" role="tablist" aria-label="Ferramentas">
     <button type="button" role="tab" id="m-auditar" data-modo="auditar" aria-controls="modo-auditar" aria-selected="true">Auditar notas</button>
+    <button type="button" role="tab" id="m-fechamento" data-modo="fechamento" aria-controls="modo-fechamento" aria-selected="false">Fechamento do mês</button>
     <button type="button" role="tab" id="m-credito" data-modo="credito" aria-controls="modo-credito" aria-selected="false">Calculadora de crédito</button>
+  </div>
+  <div class="so-impressao" id="impressao-topo" aria-hidden="true"></div>
+
+  <div class="modo" id="modo-fechamento" role="tabpanel" aria-labelledby="m-fechamento" hidden>
+    <section class="drop box" id="f-drop" tabindex="0" role="button" aria-label="Escolher as notas do mês: XML, ZIP ou PDF da NFS-e">
+      <div>
+        <h2>Solte as notas do mês aqui</h2>
+        <p class="hint">Vendas e compras juntas: XML de NF-e, NFC-e e NFS-e, arquivos ZIP ou a pasta inteira. Tudo é lido só neste navegador; nada é enviado para fora.</p>
+      </div>
+      <div class="ext" aria-hidden="true"><span class="tag">XML</span><span class="tag">ZIP</span><span class="tag">Pasta</span><span class="tag">PDF NFS-e</span></div>
+      <input id="f-file" type="file" accept=".xml,.zip,.pdf,application/xml,text/xml,application/zip,application/x-zip-compressed,application/pdf" multiple hidden>
+      <input id="f-pasta" type="file" webkitdirectory multiple hidden>
+    </section>
+    <div class="exrow">
+      <button type="button" id="f-escolher-pasta">Escolher uma pasta</button>
+      <span class="note">O CNPJ da empresa (no topo) separa vendas de compras. Se estiver em branco, o app sugere pelo que aparece nas notas.</span>
+    </div>
+    <div id="f-out"></div>
   </div>
 
   <div class="modo" id="modo-auditar" role="tabpanel" aria-labelledby="m-auditar">
@@ -391,7 +449,7 @@ function criarCore(T, DOMP) {
     const dh = ctxt(ide, 'dhEmi') || ctxt(ide, 'dEmi') || '';
     const nf = {
       tipo: 'NFE', mod: ctxt(ide, 'mod'), serie: ctxt(ide, 'serie'), numero: ctxt(ide, 'nNF'), dhEmi: dh, ano: +dh.slice(0, 4),
-      natOp: ctxt(ide, 'natOp'), tpNF: ctxt(ide, 'tpNF'), tpAmb: ctxt(ide, 'tpAmb'),
+      natOp: ctxt(ide, 'natOp'), tpNF: ctxt(ide, 'tpNF'), finNFe: ctxt(ide, 'finNFe'), tpAmb: ctxt(ide, 'tpAmb'),
       emit: { doc: ctxt(emit, 'CNPJ') || ctxt(emit, 'CPF'), nome: ctxt(emit, 'xNome'), mun: txt(child(emit, 'enderEmit'), 'xMun'), uf: txt(child(emit, 'enderEmit'), 'UF'), crt: ctxt(emit, 'CRT') },
       dest: dest ? { doc: ctxt(dest, 'CNPJ') || ctxt(dest, 'CPF') || ctxt(dest, 'idEstrangeiro'), cpf: !!child(dest, 'CPF'), nome: ctxt(dest, 'xNome'), mun: txt(child(dest, 'enderDest'), 'xMun'), uf: txt(child(dest, 'enderDest'), 'UF') } : null,
       chave: (inf.getAttribute('Id') || '').replace(/^NFe/, ''),
@@ -520,17 +578,27 @@ function criarCore(T, DOMP) {
     return { checks, ex };
   }
 
+  // Item preparado para simular 2027+: base unificada, reduções do cClassTrib e se a classificação tem alíquota.
+  // cClassTrib inválido ou NCM fora da lista dele: simulado com tributação integral (000001), marcado como ajustado.
+  function prepararItem27(it, ano) {
+    let cc = it.ibs ? it.ibs.cc : null; let cl = cc ? T.cc[cc] : null; let ajustado = false;
+    if (!cl || !ncmPermitido(cl, it.ncm)) { cc = '000001'; cl = T.cc['000001']; ajustado = true; }
+    const r = cl.r || {};
+    const semAliq = cl.t === 'Sem alíquota';
+    return { cc, ajustado, semAliq, base: semAliq ? 0 : baseItem(it, ano), red: { cbs: r.cbs || 0, uf: r.uf || 0, mun: r.mun || 0 } };
+  }
+  function valorItem27(p, a) {
+    if (p.semAliq) return { cbs: 0, ibs: 0 };
+    const v = k => r2(p.base * a[k] * (1 - p.red[k] / 100) / 100);
+    return { cbs: v('cbs'), ibs: r2(v('uf') + v('mun')) };
+  }
   function simularNFe(nf, ano, cbs27) {
-    const a = aliquotas(ano, cbs27); let cbs = 0, ibs = 0; const porItem = [];
-    for (const it of nf.itens) {
-      let cc = it.ibs ? it.ibs.cc : null; let cl = cc ? T.cc[cc] : null; let ajustado = false;
-      if (!cl || !ncmPermitido(cl, it.ncm)) { cc = '000001'; cl = T.cc['000001']; ajustado = true; }
-      if (cl.t === 'Sem alíquota') { porItem.push({ cbs: 0, ibs: 0, cc, ajustado }); continue; }
-      const base = baseItem(it, ano);
-      const v = k => r2(base * a[k] * (1 - (((cl.r && cl.r[k]) || 0)) / 100) / 100);
-      const c = v('cbs'), i = r2(v('uf') + v('mun'));
-      cbs += c; ibs += i; porItem.push({ cbs: c, ibs: i, cc, ajustado, base });
-    }
+    const a = aliquotas(ano, cbs27); let cbs = 0, ibs = 0;
+    const porItem = nf.itens.map(it => {
+      const p = prepararItem27(it, ano), v = valorItem27(p, a);
+      cbs += v.cbs; ibs += v.ibs;
+      return p.semAliq ? { cbs: 0, ibs: 0, cc: p.cc, ajustado: p.ajustado } : { cbs: v.cbs, ibs: v.ibs, cc: p.cc, ajustado: p.ajustado, base: p.base };
+    });
     return { cbs: r2(cbs), ibs: r2(ibs), total: r2(cbs + ibs), porItem };
   }
 
@@ -670,6 +738,300 @@ function criarCore(T, DOMP) {
     const pago = e.regime === 'REGULAR' && e.incluso === false ? r2(v + credito.total) : v;
     return { valor: v, pago, credito, regular, perdido: credito ? r2(Math.max(0, regular.total - credito.total)) : null, custo: credito ? r2(pago - credito.total) : null };
   }
+
+  // ---------------------------------------------------------------- ZIP: leitura e escrita, sem biblioteca
+  function concatenar(partes) {
+    const out = new Uint8Array(partes.reduce((s, p) => s + p.length, 0)); let o = 0;
+    for (const p of partes) { out.set(p, o); o += p.length; }
+    return out;
+  }
+  async function inflar(dados) {
+    if (typeof DecompressionStream === 'undefined') throw new Error('este navegador não abre ZIP');
+    const fluxo = new Blob([dados]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+    return new Uint8Array(await new Response(fluxo).arrayBuffer());
+  }
+  // Lê o diretório central e devolve as entradas; cada uma só é descompactada quando se chama ler().
+  // Métodos 0 (sem compressão) e 8 (deflate). Sem ZIP64 e sem senha. Ignora pastas e o lixo do macOS.
+  function lerZip(bytes) {
+    const u8 = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+    const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+    let fim = -1;
+    for (let i = u8.length - 22; i >= Math.max(0, u8.length - 22 - 65535); i--) if (dv.getUint32(i, true) === 0x06054b50) { fim = i; break; }
+    if (fim < 0) throw new Error('ZIP inválido ou corrompido');
+    const total = dv.getUint16(fim + 10, true); let p = dv.getUint32(fim + 16, true);
+    if (total === 0xffff || p === 0xffffffff) throw new Error('ZIP grande demais (ZIP64) não é suportado');
+    const dec = new TextDecoder('utf-8'); const out = [];
+    for (let k = 0; k < total; k++) {
+      if (p + 46 > u8.length || dv.getUint32(p, true) !== 0x02014b50) throw new Error('ZIP inválido ou corrompido');
+      const flags = dv.getUint16(p + 8, true), metodo = dv.getUint16(p + 10, true);
+      const tamComp = dv.getUint32(p + 20, true), tam = dv.getUint32(p + 24, true);
+      const nLen = dv.getUint16(p + 28, true), xLen = dv.getUint16(p + 30, true), cLen = dv.getUint16(p + 32, true);
+      const local = dv.getUint32(p + 42, true);
+      const nome = dec.decode(u8.subarray(p + 46, p + 46 + nLen));
+      p += 46 + nLen + xLen + cLen;
+      const base = nome.split('/').pop();
+      if (!base || nome.startsWith('__MACOSX/') || base.startsWith('._')) continue;
+      out.push({ nome, tamanho: tam, ler: async () => {
+        if (flags & 1) throw new Error('arquivo protegido por senha');
+        if (local + 30 > u8.length || dv.getUint32(local, true) !== 0x04034b50) throw new Error('ZIP inválido ou corrompido');
+        const ini = local + 30 + dv.getUint16(local + 26, true) + dv.getUint16(local + 28, true);
+        const dados = u8.subarray(ini, ini + tamComp);
+        if (metodo === 0) return dados.slice();
+        if (metodo === 8) return inflar(dados);
+        throw new Error(`compressão não suportada (método ${metodo})`);
+      } });
+    }
+    return out;
+  }
+  const TABCRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+  function crc32(u8) { let c = 0xffffffff; for (let i = 0; i < u8.length; i++) c = TABCRC[(c ^ u8[i]) & 0xff] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; }
+  // ZIP sem compressão (método 0), nomes em UTF-8 e data fixa (01/01/1980): o mesmo conteúdo gera os mesmos bytes.
+  function zipSemCompressao(arquivos) {
+    const enc = new TextEncoder(), partes = [], central = []; let off = 0;
+    for (const a of arquivos) {
+      const nome = enc.encode(a.nome), crc = crc32(a.dados), n = a.dados.length;
+      const h = new DataView(new ArrayBuffer(30));
+      h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x800, true); h.setUint16(12, 0x21, true);
+      h.setUint32(14, crc, true); h.setUint32(18, n, true); h.setUint32(22, n, true); h.setUint16(26, nome.length, true);
+      partes.push(new Uint8Array(h.buffer), nome, a.dados);
+      const c = new DataView(new ArrayBuffer(46));
+      c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x800, true); c.setUint16(14, 0x21, true);
+      c.setUint32(16, crc, true); c.setUint32(20, n, true); c.setUint32(24, n, true); c.setUint16(28, nome.length, true); c.setUint32(42, off, true);
+      central.push(new Uint8Array(c.buffer), nome);
+      off += 30 + nome.length + n;
+    }
+    const e = new DataView(new ArrayBuffer(22));
+    e.setUint32(0, 0x06054b50, true); e.setUint16(8, arquivos.length, true); e.setUint16(10, arquivos.length, true);
+    e.setUint32(12, central.reduce((s, x) => s + x.length, 0), true); e.setUint32(16, off, true);
+    return concatenar([...partes, ...central, new Uint8Array(e.buffer)]);
+  }
+
+  // ---------------------------------------------------------------- planilha Excel (.xlsx)
+  // planilhas: [{ nome, colunas: [{ titulo, tipo: texto|moeda|num|pct|data|inteiro, largura }], linhas: [[...]], total?: [...], filtro? }]
+  // Moeda em R$, data como data de verdade (ISO AAAA-MM-DD na entrada), cabeçalho fixo e com filtro.
+  const xmlEsc = s => String(s).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const colLetra = i => { let s = ''; i++; while (i) { const m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = Math.floor((i - 1) / 26); } return s; };
+  function serialData(iso) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || '');
+    return m ? (Date.UTC(+m[1], +m[2] - 1, +m[3]) - Date.UTC(1899, 11, 30)) / 86400000 : null;
+  }
+  function celula(ref, v, tipo, negrito) {
+    if (v == null || v === '') return '';
+    if (tipo === 'data' && typeof v === 'string') { const s = serialData(v); if (s != null) return `<c r="${ref}" s="5"><v>${s}</v></c>`; }
+    if (typeof v === 'number' && isFinite(v)) {
+      const s = tipo === 'moeda' ? (negrito ? 6 : 2) : tipo === 'num' ? 3 : tipo === 'pct' ? 4 : (negrito ? 1 : 0);
+      return `<c r="${ref}" s="${s}"><v>${v}</v></c>`;
+    }
+    return `<c r="${ref}" t="inlineStr"${negrito ? ' s="1"' : ''}><is><t xml:space="preserve">${xmlEsc(v)}</t></is></c>`;
+  }
+  function gerarXlsx(planilhas) {
+    const enc = new TextEncoder(), arqs = [];
+    const add = (nome, xml) => arqs.push({ nome, dados: enc.encode('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' + xml) });
+    const NS = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
+    const NSR = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+    const NSP = 'http://schemas.openxmlformats.org/package/2006/relationships';
+    const usados = new Set();
+    const ps = planilhas.map((p, i) => {
+      let nome = String(p.nome || '').replace(/[[\]:*?/\\]/g, ' ').trim().slice(0, 31) || `Planilha ${i + 1}`;
+      while (usados.has(nome.toLowerCase())) nome = `${nome.slice(0, 27)} ${i + 1}`;
+      usados.add(nome.toLowerCase());
+      return Object.assign({}, p, { nome });
+    });
+    add('[Content_Types].xml', `<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>${ps.map((_, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')}</Types>`);
+    add('_rels/.rels', `<Relationships xmlns="${NSP}"><Relationship Id="rId1" Type="${NSR}/officeDocument" Target="xl/workbook.xml"/></Relationships>`);
+    add('xl/workbook.xml', `<workbook xmlns="${NS}" xmlns:r="${NSR}"><sheets>${ps.map((p, i) => `<sheet name="${xmlEsc(p.nome)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join('')}</sheets></workbook>`);
+    add('xl/_rels/workbook.xml.rels', `<Relationships xmlns="${NSP}">${ps.map((_, i) => `<Relationship Id="rId${i + 1}" Type="${NSR}/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`).join('')}<Relationship Id="rId${ps.length + 1}" Type="${NSR}/styles" Target="styles.xml"/></Relationships>`);
+    add('xl/styles.xml', `<styleSheet xmlns="${NS}"><numFmts count="2"><numFmt numFmtId="164" formatCode="&quot;R$&quot;\\ #,##0.00"/><numFmt numFmtId="165" formatCode="0.00&quot;%&quot;"/></numFmts><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="7"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="4" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="14" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="164" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1" applyNumberFormat="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`);
+    ps.forEach((p, i) => {
+      const cols = p.colunas, n = p.linhas.length;
+      const tipo = j => (cols[j] ? cols[j].tipo : 'texto');
+      const linhas = [`<row r="1">${cols.map((c, j) => celula(colLetra(j) + 1, c.titulo, 'texto', true)).join('')}</row>`];
+      p.linhas.forEach((l, k) => linhas.push(`<row r="${k + 2}">${l.map((v, j) => celula(colLetra(j) + (k + 2), v, tipo(j), false)).join('')}</row>`));
+      if (p.total) linhas.push(`<row r="${n + 2}">${p.total.map((v, j) => celula(colLetra(j) + (n + 2), v, tipo(j), true)).join('')}</row>`);
+      const larguras = `<cols>${cols.map((c, j) => `<col min="${j + 1}" max="${j + 1}" width="${c.largura || 14}" customWidth="1"/>`).join('')}</cols>`;
+      const vista = `<sheetViews><sheetView workbookViewId="0"${i === 0 ? ' tabSelected="1"' : ''}><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>`;
+      const filtro = n && p.filtro !== false ? `<autoFilter ref="A1:${colLetra(cols.length - 1)}${n + 1}"/>` : '';
+      add(`xl/worksheets/sheet${i + 1}.xml`, `<worksheet xmlns="${NS}">${vista}${larguras}<sheetData>${linhas.join('')}</sheetData>${filtro}</worksheet>`);
+    });
+    return zipSemCompressao(arqs);
+  }
+
+  // ---------------------------------------------------------------- fechamento do mês
+  // Cada nota vira um registro compacto (o XML não fica guardado), com os itens já preparados para simular 2027.
+  // Notas de 2026 são recalculadas com as alíquotas de 2027; de 2027 em diante vale o valor destacado na nota.
+  const raizDe = d => { const s = (d || '').replace(/\D/g, ''); return s.length === 14 ? s.slice(0, 8) : ''; };
+  const REGIME_CRT = { 1: 'SIMPLES', 2: 'SIMPLES', 3: 'REGULAR', 4: 'MEI' };
+  const DENEGADA = new Set(['110', '205', '301', '302', '303']);
+  function decodificarXML(bytes) {
+    const u8 = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+    const cab = new TextDecoder('latin1').decode(u8.subarray(0, 200));
+    const m = /encoding\s*=\s*["']([^"']+)["']/i.exec(cab);
+    return new TextDecoder(m && /^(iso-?8859-1|latin-?1|windows-1252|cp1252)$/i.test(m[1]) ? 'windows-1252' : 'utf-8').decode(u8);
+  }
+  function problemasDe(checks) {
+    return checks.filter(c => c.sev === 'err' || c.sev === 'warn').slice(0, 8)
+      .map(c => ({ sev: c.sev, titulo: c.titulo, item: c.item ? `Item ${c.item.n} · ${c.item.xProd || ''}` : '' }));
+  }
+  function registroNFe(nf, r) {
+    const real = nf.ano >= 2027;
+    return {
+      tipo: 'NFE', modelo: nf.mod === '65' ? 'NFC-e' : 'NF-e', numero: nf.numero, serie: nf.serie, chave: nf.chave || null,
+      data: dataISO(nf.dhEmi), ano: nf.ano, tpNF: nf.tpNF, finNFe: nf.finNFe, sefaz: nf.prot ? nf.prot.cStat : null,
+      emit: { doc: nf.emit.doc, nome: nf.emit.nome, regime: REGIME_CRT[nf.emit.crt] || null },
+      dest: nf.dest ? { doc: nf.dest.doc, nome: nf.dest.nome } : null,
+      valor: nf.tot.vNF, origem: real ? 'destacado' : 'simulado',
+      veredito: { palavra: r.v.palavra, cls: r.v.cls, e: r.v.e, w: r.v.w }, problemas: problemasDe(r.checks),
+      itens: nf.itens.map(it => {
+        const p = prepararItem27(it, 2027);
+        const b = it.ibs;
+        const valores = real ? { cbs: b && b.cbs ? b.cbs.v : 0, ibs: b ? (b.vIBS != null ? b.vIBS : r2(((b.uf && b.uf.v) || 0) + ((b.mun && b.mun.v) || 0))) : 0 } : null;
+        return { cfop: it.cfop, v: it.vProd, b: p.base, red: p.red, s: p.semAliq, real: valores };
+      })
+    };
+  }
+  function registroNFSe(ns, r) {
+    const data = dataISO(ns.dhEmi || ns.competencia);
+    const cl = ns.ibs && ns.ibs.cc ? T.cc[ns.ibs.cc] : null;
+    const red = (cl && cl.r) || {};
+    const real = +data.slice(0, 4) >= 2027 && ns.ibs && (ns.ibs.vCBS != null || ns.ibs.vIBS != null);
+    const semAliq = !!(cl && cl.t === 'Sem alíquota');
+    return {
+      tipo: 'NFSE', modelo: 'NFS-e', numero: ns.numero, serie: '', chave: ns.chave || null,
+      data, ano: +data.slice(0, 4) || null, tpNF: null, finNFe: null, sefaz: null,
+      emit: { doc: ns.prest.doc, nome: ns.prest.nome, regime: ns.regime || null },
+      dest: ns.tom ? { doc: ns.tom.doc, nome: ns.tom.nome } : null,
+      valor: ns.valor || 0, origem: real ? 'destacado' : 'simulado',
+      veredito: { palavra: r.v.palavra, cls: r.v.cls, e: r.v.e, w: r.v.w }, problemas: problemasDe(r.checks),
+      itens: [{ cfop: null, v: ns.valor || 0, b: semAliq ? 0 : (ns.valor || 0), red: { cbs: red.cbs || 0, uf: red.uf || 0, mun: red.mun || 0 }, s: semAliq, real: real ? { cbs: ns.ibs.vCBS || 0, ibs: ns.ibs.vIBS || 0 } : null }]
+    };
+  }
+  // Devolve { registro } para NF-e, NFC-e e NFS-e; { cancelamento: chave } para evento de cancelamento; { ignorado: motivo } no resto.
+  function lerParaFechamento(texto, cfg) {
+    let doc;
+    try { doc = new DOMP().parseFromString(texto, 'text/xml'); } catch (e) { return { ignorado: 'XML inválido' }; }
+    if (!doc || !doc.documentElement || first(doc, 'parsererror')) return { ignorado: 'XML inválido' };
+    if (first(doc, 'infNFe')) { const nf = parseNFe(doc); return { registro: registroNFe(nf, finalizar(nf, auditarNFe(nf, cfg), cfg)) }; }
+    if (first(doc, 'infNFSe') || first(doc, 'infDPS')) { const ns = parseNFSeXML(doc); return { registro: registroNFSe(ns, finalizar(ns, auditarNFSe(ns, cfg), cfg)) }; }
+    if (first(doc, 'infEvento') || first(doc, 'infPedReg')) {
+      const tp = txt(doc, 'tpEvento'), chNFe = txt(doc, 'chNFe'), chNFSe = txt(doc, 'chNFSe');
+      const cancNFe = (tp === '110111' || tp === '110112') && chNFe;
+      const cancNFSe = (first(doc, 'e101101') || first(doc, 'e105102')) && chNFSe;
+      if (!cancNFe && !cancNFSe) return { ignorado: tp ? `Evento ${tp} (não é cancelamento)` : 'Evento que não é cancelamento' };
+      const stats = all(doc, 'cStat').map(e => (e.textContent || '').trim());
+      if (cancNFe && stats.length && !stats.some(s => ['135', '136', '155'].includes(s))) return { ignorado: 'Pedido de cancelamento sem registro na Sefaz' };
+      return { cancelamento: cancNFe ? chNFe : chNFSe };
+    }
+    if (first(doc, 'infInut')) return { ignorado: 'Inutilização de numeração' };
+    return { ignorado: 'Não é NF-e, NFC-e, NFS-e nem evento de cancelamento' };
+  }
+  function lerPdfParaFechamento(items, cfg) {
+    const texto = items.map(i => i.s).join('\n');
+    if (/DANFSe|Documento Auxiliar da NFS-e|CHAVE DE ACESSO DA NFS-e/i.test(texto)) { const ns = parseDANFSe(items); return { registro: registroNFSe(ns, finalizar(ns, auditarNFSe(ns, cfg), cfg)) }; }
+    if (/DANFE|Documento Auxiliar da Nota Fiscal/i.test(texto)) return { ignorado: 'PDF de NF-e/NFC-e (DANFE): o PDF não traz os itens; solte o XML' };
+    return { ignorado: texto.trim() ? 'PDF que não é DANFSe nem DANFE' : 'PDF sem texto (imagem escaneada)' };
+  }
+  // Papel da nota para a empresa (raiz = 8 primeiros dígitos do CNPJ).
+  function papelNota(r, raiz) {
+    if (r.cancelada) return 'cancelada';
+    if (r.sefaz && DENEGADA.has(r.sefaz)) return 'denegada';
+    const e = raizDe(r.emit.doc), d = r.dest ? raizDe(r.dest.doc) : '';
+    if (!raiz) return 'outra';
+    if (r.tipo === 'NFSE') return d === raiz ? 'compra' : e === raiz ? 'venda' : 'outra';
+    if (e === raiz && d === raiz) return 'transferencia';
+    const dev = r.finNFe === '4';
+    if (e === raiz) return r.tpNF === '0' ? (dev ? 'devVenda' : 'entradaPropria') : (dev ? 'devCompra' : 'venda');
+    if (d === raiz) return r.tpNF === '0' ? 'outra' : (dev ? 'devVenda' : 'compra');
+    return 'outra';
+  }
+  function valores27(r, a) {
+    let cbs = 0, ibs = 0;
+    const porItem = r.itens.map(it => {
+      const v = it.real || valorItem27({ semAliq: it.s, base: it.b, red: it.red }, a);
+      cbs += v.cbs; ibs += v.ibs; return v;
+    });
+    return { cbs: r2(cbs), ibs: r2(ibs), porItem };
+  }
+  // Crédito de uma compra: o destacado na nota (2027+); na simulação, integral do regime regular, zero do MEI
+  // e "não estimado" (null) do Simples ou de regime desconhecido, porque o crédito é só o que ele paga no DAS.
+  function creditoCompra(r, t) {
+    if (r.origem === 'destacado' || r.emit.regime === 'REGULAR') return { cbs: t.cbs, ibs: t.ibs };
+    if (r.emit.regime === 'MEI') return { cbs: 0, ibs: 0 };
+    return null;
+  }
+  const PIOR = { bad: 3, warn: 2, neutral: 1, ok: 0 };
+  function apurar(registros, o) {
+    const a = aliquotas(2027, o.cbs27);
+    const zero = () => ({ cbs: 0, ibs: 0 });
+    const ap = { debito: zero(), devVenda: zero(), credito: zero(), devCompra: zero() };
+    const soma = (alvo, v) => { alvo.cbs += v.cbs; alvo.ibs += v.ibs; };
+    const naoEstimado = { notas: 0, valor: 0 };
+    const cont = { total: 0, papel: {}, veredito: {} };
+    const forn = new Map(), cfops = new Map(), notas = [], meses = new Set();
+    let de = '', ate = '';
+    for (const r of registros) {
+      const mes = (r.data || '').slice(0, 7);
+      if (mes) meses.add(mes);
+      if (o.mes && mes !== o.mes) continue;
+      const papel = papelNota(r, o.raiz);
+      const t = valores27(r, a);
+      let efeito = null, credito = null;
+      if (papel === 'venda') { soma(ap.debito, t); efeito = 'debito'; }
+      else if (papel === 'devVenda') { soma(ap.devVenda, t); efeito = 'devVenda'; }
+      else if (papel === 'devCompra') { soma(ap.devCompra, t); efeito = 'devCompra'; }
+      else if (papel === 'compra') {
+        credito = creditoCompra(r, t);
+        if (credito) { soma(ap.credito, credito); efeito = 'credito'; } else { naoEstimado.notas++; naoEstimado.valor += r.valor || 0; efeito = 'naoEstimado'; }
+      }
+      cont.total++;
+      cont.papel[papel] = (cont.papel[papel] || 0) + 1;
+      cont.veredito[r.veredito.palavra] = (cont.veredito[r.veredito.palavra] || 0) + 1;
+      if (r.data) { if (!de || r.data < de) de = r.data; if (!ate || r.data > ate) ate = r.data; }
+      notas.push({ r, papel, t, efeito, credito });
+      if (papel === 'compra') {
+        const k = r.emit.doc || r.emit.nome || '?';
+        const f = forn.get(k) || { doc: r.emit.doc, nome: r.emit.nome, regime: r.emit.regime, notas: 0, valor: 0, credito: zero(), naoEstimado: 0, pior: 'ok' };
+        f.notas++; f.valor += r.valor || 0;
+        if (credito) soma(f.credito, credito); else f.naoEstimado++;
+        if (!f.regime && r.emit.regime) f.regime = r.emit.regime;
+        if (PIOR[r.veredito.cls] > PIOR[f.pior]) f.pior = r.veredito.cls;
+        forn.set(k, f);
+      }
+      if (['venda', 'compra', 'devVenda', 'devCompra', 'transferencia'].includes(papel)) {
+        r.itens.forEach((it, i) => {
+          if (!it.cfop) return;
+          const c = cfops.get(it.cfop) || { cfop: it.cfop, itens: 0, valor: 0, cbs: 0, ibs: 0 };
+          c.itens++; c.valor += it.v || 0; c.cbs += t.porItem[i].cbs; c.ibs += t.porItem[i].ibs;
+          cfops.set(it.cfop, c);
+        });
+      }
+    }
+    const fecha = v => ({ cbs: r2(v.cbs), ibs: r2(v.ibs), total: r2(v.cbs + v.ibs) });
+    Object.keys(ap).forEach(k => { ap[k] = fecha(ap[k]); });
+    ap.resultado = fecha({ cbs: ap.debito.cbs - ap.devVenda.cbs - ap.credito.cbs + ap.devCompra.cbs, ibs: ap.debito.ibs - ap.devVenda.ibs - ap.credito.ibs + ap.devCompra.ibs });
+    naoEstimado.valor = r2(naoEstimado.valor);
+    return {
+      periodo: { de, ate, meses: [...meses].sort() }, cont, apuracao: ap, naoEstimado,
+      notas: notas.sort((x, y) => (x.r.data || '').localeCompare(y.r.data || '') || String(x.r.numero || '').localeCompare(String(y.r.numero || ''), undefined, { numeric: true })),
+      fornecedores: [...forn.values()].map(f => Object.assign(f, { valor: r2(f.valor), credito: fecha(f.credito) })).sort((x, y) => y.valor - x.valor),
+      cfops: [...cfops.values()].map(c => Object.assign(c, { valor: r2(c.valor), cbs: r2(c.cbs), ibs: r2(c.ibs) })).sort((x, y) => x.cfop.localeCompare(y.cfop))
+    };
+  }
+  // CNPJs (raiz) que mais aparecem nas notas, para a pessoa apontar qual é a empresa.
+  function detectarEmpresa(registros) {
+    const cont = new Map();
+    for (const r of registros) {
+      const vistos = new Set();
+      for (const p of [r.emit, r.dest]) {
+        const rz = p ? raizDe(p.doc) : '';
+        if (!rz || vistos.has(rz)) continue;
+        vistos.add(rz);
+        const c = cont.get(rz) || { raiz: rz, nome: '', notas: 0 };
+        c.notas++; if (!c.nome && p.nome) c.nome = p.nome;
+        cont.set(rz, c);
+      }
+    }
+    return [...cont.values()].sort((x, y) => y.notas - x.notas).slice(0, 5);
+  }
   function fmtDoc(d) {
     d = (d || '').replace(/\D/g, '');
     if (d.length === 14) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`;
@@ -712,7 +1074,10 @@ function criarCore(T, DOMP) {
     }
     return { doc, checks: a.checks, ex: a.ex, v, direcao };
   }
-  return { analisarXML, analisarItensPDF, simularNFe, simularNFSe, calcularCredito, lerValor, aliquotas, decodChaveNFe, fmtNCM, fmtDoc, brl, pct, dataBR, r2 };
+  return {
+    analisarXML, analisarItensPDF, simularNFe, simularNFSe, calcularCredito, lerValor, aliquotas, decodChaveNFe, fmtNCM, fmtDoc, brl, pct, dataBR, r2,
+    lerZip, zipSemCompressao, gerarXlsx, decodificarXML, lerParaFechamento, lerPdfParaFechamento, apurar, detectarEmpresa, papelNota, raizDe
+  };
 }
 /*CORE-END*/
 
@@ -724,15 +1089,16 @@ function criarCore(T, DOMP) {
   const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* sem armazenamento */ } } };
   const cfg = { cnpj: store.get('rtc.cnpj') || '', cbs27: parseFloat(store.get('rtc.cbs27')) || 11.2 };
   const state = { arquivos: [], sel: -1 };
+  let modoAtual = 'auditar';
   let seq = 0;
 
   const elCnpj = document.getElementById('cnpj');
   elCnpj.value = cfg.cnpj;
-  elCnpj.addEventListener('input', () => { cfg.cnpj = elCnpj.value; store.set('rtc.cnpj', cfg.cnpj); reanalisar(); });
+  elCnpj.addEventListener('input', () => { cfg.cnpj = elCnpj.value; store.set('rtc.cnpj', cfg.cnpj); reanalisar(); renderFech(); });
   const segBtns = Array.from(document.querySelectorAll('[data-cbs]'));
   function syncSeg() { segBtns.forEach(b => b.setAttribute('aria-pressed', String(Math.abs(parseFloat(b.dataset.cbs) - cfg.cbs27) < 1e-6))); }
   segBtns.forEach(b => b.addEventListener('click', () => setCbs(parseFloat(b.dataset.cbs))));
-  function setCbs(v) { cfg.cbs27 = Math.round(v * 10) / 10; store.set('rtc.cbs27', String(cfg.cbs27)); syncSeg(); reanalisar(); syncCbsCalc(); renderCalc(); }
+  function setCbs(v) { cfg.cbs27 = Math.round(v * 10) / 10; store.set('rtc.cbs27', String(cfg.cbs27)); syncSeg(); reanalisar(); syncCbsCalc(); renderCalc(); renderFech(); }
   syncSeg();
 
   // entrada de arquivos
@@ -744,7 +1110,14 @@ function criarCore(T, DOMP) {
   ['dragleave', 'drop'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.remove('over'); }));
   drop.addEventListener('drop', e => lerArquivos(e.dataTransfer.files));
   document.addEventListener('dragover', e => e.preventDefault());
-  document.addEventListener('drop', e => { if (!drop.contains(e.target)) { e.preventDefault(); lerArquivos(e.dataTransfer.files); } });
+  // arquivo solto fora das áreas de soltar: vai para a ferramenta aberta (na calculadora, não faz nada)
+  document.addEventListener('drop', e => {
+    const fd = document.getElementById('f-drop');
+    if (drop.contains(e.target) || (fd && fd.contains(e.target))) return;
+    e.preventDefault();
+    if (modoAtual === 'auditar') lerArquivos(e.dataTransfer.files);
+    else if (modoAtual === 'fechamento') fechSoltar(e);
+  });
 
   document.getElementById('ex-1').addEventListener('click', () => adicionarXML('EXEMPLO · nfe_2027_com_erros.xml', document.getElementById('ex-erros').textContent, true));
   document.getElementById('ex-2').addEventListener('click', () => adicionarXML('EXEMPLO · nfe_2027_conforme.xml', document.getElementById('ex-ok').textContent, true));
@@ -809,9 +1182,12 @@ function criarCore(T, DOMP) {
     if (!a) { out.innerHTML = '<div class="box empty">Solte uma nota acima ou abra um exemplo.</div>'; return; }
     if (a.erro) { out.innerHTML = `<div class="err-msg">${esc(a.nome)}: ${esc(a.erro)}</div>`; return; }
     const r = a.res;
-    if (r.doc.tipo === 'NFE') out.innerHTML = viewNFe(a, r);
-    else if (r.doc.tipo === 'NFSE') out.innerHTML = viewNFSe(a, r);
-    else out.innerHTML = viewDANFE(a, r);
+    const rel = '<div class="acoes-rel"><button type="button" id="a-pdf">Salvar PDF</button><button type="button" id="a-xlsx">Exportar Excel</button></div>';
+    if (r.doc.tipo === 'NFE') out.innerHTML = rel + viewNFe(a, r);
+    else if (r.doc.tipo === 'NFSE') out.innerHTML = rel + viewNFSe(a, r);
+    else out.innerHTML = rel + viewDANFE(a, r);
+    out.querySelector('#a-pdf').addEventListener('click', () => window.print());
+    out.querySelector('#a-xlsx').addEventListener('click', exportarAuditoria);
     out.querySelectorAll('[data-copy]').forEach(b => b.addEventListener('click', () => {
       const t = b.getAttribute('data-copy');
       const done = () => { b.textContent = 'Copiado'; setTimeout(() => { b.textContent = 'Copiar'; }, 1400); };
@@ -965,11 +1341,11 @@ function criarCore(T, DOMP) {
   const $ = id => document.getElementById(id);
   const modos = Array.from(document.querySelectorAll('[data-modo]'));
   function setModo(m) {
-    const modo = m === 'credito' ? 'credito' : 'auditar';
+    const modo = ['credito', 'fechamento'].includes(m) ? m : 'auditar';
+    modoAtual = modo;
     store.set('rtc.modo', modo);
     modos.forEach(b => b.setAttribute('aria-selected', String(b.dataset.modo === modo)));
-    $('modo-auditar').hidden = modo !== 'auditar';
-    $('modo-credito').hidden = modo !== 'credito';
+    ['auditar', 'fechamento', 'credito'].forEach(x => { $('modo-' + x).hidden = modo !== x; });
   }
   modos.forEach(b => b.addEventListener('click', () => { setModo(b.dataset.modo); if (b.dataset.modo === 'credito') $('c-valor').focus(); }));
 
@@ -1058,7 +1434,7 @@ function criarCore(T, DOMP) {
         <tbody>${linhas}</tbody>
         <tfoot><tr><td>Total<span class="so-cel sub2"> · ${brl(t.pago)}</span></td><td class="n opt">${brl(t.pago)}</td><td class="n opt">${brl(t.cbs)}</td><td class="n opt">${brl(t.ibs)}</td><td class="n">${brl(t.cred)}</td><td></td></tr></tfoot>
       </table></div>
-      <div class="acoes"><button type="button" id="c-limpar-lista">Limpar lista</button></div>
+      <div class="acoes"><button type="button" id="c-xlsx">Exportar Excel</button><button type="button" id="c-pdf">Salvar PDF</button><button type="button" id="c-limpar-lista">Limpar lista</button></div>
       <p class="note">A lista fica salva só neste navegador. Nada é enviado para fora.</p>`;
   }
 
@@ -1076,6 +1452,10 @@ function criarCore(T, DOMP) {
       renderCalc();
       const prox = $('c-lista').querySelector('[data-rm]'); (prox || $('c-valor')).focus();
     }));
+    const xl = $('c-xlsx');
+    if (xl) xl.addEventListener('click', exportarCredito);
+    const pdf = $('c-pdf');
+    if (pdf) pdf.addEventListener('click', () => window.print());
     const lim = $('c-limpar-lista');
     if (lim) lim.addEventListener('click', () => {
       // dois cliques: o primeiro pede confirmação (confirm() pode estar bloqueado em iframes)
@@ -1106,6 +1486,393 @@ function criarCore(T, DOMP) {
   });
   $('c-cbs').addEventListener('input', () => setCbs(parseFloat($('c-cbs').value)));
   syncCalc(); syncCbsCalc(); renderCalc();
+
+  // ----------------------------------------------------------- fechamento do mês
+  // Soltar o mês inteiro (XML, ZIP, pasta ou PDF de NFS-e): cada nota vira um registro compacto e a apuração
+  // simulada de 2027 sai das vendas, compras, devoluções e cancelamentos. Só o XML das notas com problema fica
+  // guardado (para abrir no auditor), até 30 MB.
+  const PAPEL = { venda: 'Venda', compra: 'Compra', devVenda: 'Devolução de venda', devCompra: 'Devolução de compra', transferencia: 'Transferência entre filiais', entradaPropria: 'Entrada emitida pela empresa', outra: 'Não envolve a empresa', cancelada: 'Cancelada', denegada: 'Denegada' };
+  const EFEITO = { debito: 'Débito', devVenda: 'Reduz o débito', credito: 'Crédito', naoEstimado: 'Crédito não estimado (Simples)', devCompra: 'Reduz o crédito' };
+  const REGIME_NOME = { REGULAR: 'Regime regular', SIMPLES: 'Simples Nacional', MEI: 'MEI' };
+  const SIT = { ok: 'OK', warn: 'Alerta', bad: 'Erro', neutral: '—' };
+  const fech = { registros: [], chaves: new Set(), cancelados: new Set(), ignorados: [], repetidas: 0, textos: new Map(), bytesTextos: 0, fila: [], processando: false, feitos: 0, total: 0, mes: '', seq: 0 };
+  const LIMITE_TEXTOS = 30 * 1024 * 1024;
+  const IGNORAR = /^(\.|desktop\.ini$|thumbs\.db$)/i;
+  const raizEmpresa = () => (cfg.cnpj || '').replace(/\D/g, '').slice(0, 8);
+  const fmtRaiz = r => `${r.slice(0, 2)}.${r.slice(2, 5)}.${r.slice(5, 8)}`;
+  const pausa = () => new Promise(r => setTimeout(r, 0));
+  const chipSit = cls => ({ ok: 's-ok', warn: 's-warn', bad: 's-err' }[cls] || 's-info');
+  const plural = (n, um, varios) => `${n.toLocaleString('pt-BR')} ${n === 1 ? um : varios}`;
+
+  async function lerPastaArrastada(entradas) {
+    const arquivos = [];
+    const visitar = async ent => {
+      if (!ent) return;
+      if (ent.isFile) {
+        const f = await new Promise((ok, erro) => ent.file(ok, erro)).catch(() => null);
+        if (f) arquivos.push({ nome: ent.fullPath.replace(/^\//, ''), arquivo: f });
+        return;
+      }
+      if (ent.isDirectory) {
+        const leitor = ent.createReader();
+        for (;;) {
+          const lote = await new Promise((ok, erro) => leitor.readEntries(ok, erro)).catch(() => []);
+          if (!lote.length) break;
+          for (const e of lote) await visitar(e);
+        }
+      }
+    };
+    for (const e of entradas) await visitar(e);
+    return arquivos;
+  }
+  function fechSoltar(e) {
+    const dt = e.dataTransfer;
+    if (!dt) return;
+    // as entradas têm de ser pegas durante o evento: depois dele a lista do navegador se esvazia
+    const entradas = dt.items ? Array.from(dt.items).map(i => (i.kind === 'file' && i.webkitGetAsEntry ? i.webkitGetAsEntry() : null)) : [];
+    if (entradas.some(x => x && x.isDirectory)) lerPastaArrastada(entradas).then(fechAdicionar);
+    else fechAdicionar(Array.from(dt.files || []).map(f => ({ nome: f.name, arquivo: f })));
+  }
+  function fechAdicionar(itens) {
+    itens = itens.filter(it => !IGNORAR.test(it.nome.split('/').pop()));
+    if (!itens.length) return;
+    fech.fila.push(...itens);
+    fech.total += itens.length;
+    if (fech.processando) { atualizarProgresso(); return; }
+    processarFila();
+  }
+  async function processarFila() {
+    fech.processando = true;
+    renderFech();
+    let ultimo = Date.now();
+    while (fech.fila.length) {
+      const it = fech.fila.shift();
+      try { await processarItem(it); } catch (e) { fech.ignorados.push({ arquivo: it.nome, motivo: 'Não consegui ler: ' + ((e && e.message) || e) }); }
+      fech.feitos++;
+      if (Date.now() - ultimo > 120) { atualizarProgresso(); await pausa(); ultimo = Date.now(); }
+    }
+    fech.registros.forEach(r => { r.cancelada = !!(r.chave && fech.cancelados.has(r.chave)); });
+    fech.processando = false; fech.feitos = 0; fech.total = 0;
+    renderFech();
+  }
+  async function processarItem(it) {
+    const bytes = it.bytes || (it.ler ? await it.ler() : new Uint8Array(await it.arquivo.arrayBuffer()));
+    const nome = it.nome;
+    const sig = bytes.length >= 4 ? ((bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3]) >>> 0 : 0;
+    if (sig === 0x504b0304 || sig === 0x504b0506) { // ZIP: as entradas entram na fila e são lidas uma a uma
+      const entradas = core.lerZip(bytes).filter(e => !IGNORAR.test(e.nome.split('/').pop()));
+      entradas.forEach(e => fech.fila.push({ nome: `${nome} › ${e.nome}`, ler: e.ler }));
+      fech.total += entradas.length;
+      if (!entradas.length) fech.ignorados.push({ arquivo: nome, motivo: 'ZIP vazio' });
+      return;
+    }
+    if (sig === 0x25504446) { // %PDF
+      if (!window.pdfjsLib) { fech.ignorados.push({ arquivo: nome, motivo: 'O leitor de PDF não carregou (sem internet?)' }); return; }
+      const pdf = await window.pdfjsLib.getDocument({ data: bytes, isEvalSupported: false }).promise;
+      const tc = await (await pdf.getPage(1)).getTextContent();
+      const items = tc.items.filter(i => i.str && i.str.trim()).map(i => ({ s: i.str, x: i.transform[4], y: i.transform[5] }));
+      guardarFech(core.lerPdfParaFechamento(items, cfg), nome, null);
+      return;
+    }
+    let i = bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf ? 3 : 0; // BOM do UTF-8
+    while (i < bytes.length && (bytes[i] === 0x20 || bytes[i] === 0x09 || bytes[i] === 0x0a || bytes[i] === 0x0d)) i++;
+    if (bytes[i] !== 0x3c) { fech.ignorados.push({ arquivo: nome, motivo: 'Não é XML, ZIP nem PDF' }); return; }
+    const texto = core.decodificarXML(bytes);
+    guardarFech(core.lerParaFechamento(texto, cfg), nome, texto);
+  }
+  function guardarFech(res, nome, texto) {
+    if (res.cancelamento) { fech.cancelados.add(res.cancelamento); return; }
+    if (res.ignorado) { fech.ignorados.push({ arquivo: nome, motivo: res.ignorado }); return; }
+    const r = res.registro;
+    if (r.chave && fech.chaves.has(r.chave)) { fech.repetidas++; return; }
+    if (r.chave) fech.chaves.add(r.chave);
+    r.id = ++fech.seq;
+    r.arquivo = nome;
+    if (texto && r.veredito.cls !== 'ok' && fech.bytesTextos + texto.length <= LIMITE_TEXTOS) { fech.textos.set(r.id, texto); fech.bytesTextos += texto.length; }
+    fech.registros.push(r);
+  }
+  function atualizarProgresso() {
+    const f = $('f-prog'), t = $('f-prog-txt');
+    if (f) f.style.width = (fech.total ? Math.round(fech.feitos / fech.total * 100) : 0) + '%';
+    if (t) t.textContent = `${fech.feitos.toLocaleString('pt-BR')} de ${plural(fech.total, 'arquivo', 'arquivos')}`;
+  }
+  function limparFech() {
+    Object.assign(fech, { registros: [], chaves: new Set(), cancelados: new Set(), ignorados: [], repetidas: 0, textos: new Map(), bytesTextos: 0, mes: '' });
+    renderFech();
+  }
+  function apuracaoAtual() { return core.apurar(fech.registros, { raiz: raizEmpresa(), cbs27: cfg.cbs27, mes: fech.mes }); }
+  function contraparte(r, papel) {
+    if (papel === 'transferencia') return `Para a filial ${r.dest ? fmtDoc(r.dest.doc) : '—'}`;
+    const outro = core.raizDe(r.emit.doc) === raizEmpresa() ? r.dest : r.emit;
+    if (!outro) return 'Consumidor não identificado';
+    return `${outro.nome || 'Sem nome'} · ${fmtDoc(outro.doc)}`;
+  }
+  function abrirNoAuditor(id) {
+    const r = fech.registros.find(x => x.id === id), t = fech.textos.get(id);
+    if (!r || !t) return;
+    setModo('auditar');
+    adicionarXML(r.arquivo.split(' › ').pop().split('/').pop(), t, false);
+    window.scrollTo(0, 0);
+  }
+
+  function viewFechamento() {
+    if (fech.processando) {
+      const p = fech.total ? Math.round(fech.feitos / fech.total * 100) : 0;
+      return `<section class="box sec" aria-labelledby="h-prog"><h3 id="h-prog"><span>Lendo as notas</span><span class="lbl" id="f-prog-txt">${fech.feitos.toLocaleString('pt-BR')} de ${plural(fech.total, 'arquivo', 'arquivos')}</span></h3><div class="prog"><div class="fill" id="f-prog" style="width:${p}%"></div></div><p class="note">Pode soltar mais arquivos enquanto isso. Nada sai deste navegador.</p></section>`;
+    }
+    if (!fech.registros.length) {
+      return `<div class="box empty">Nenhuma nota ainda. Solte acima as notas do mês, vendas e compras juntas. O app mostra quantas estão com erro, um resumo por fornecedor e quanto a empresa pagaria de IBS/CBS em 2027.</div>${fech.ignorados.length ? `<section class="box sec">${blocoIgnorados()}</section>` : ''}`;
+    }
+    const raiz = raizEmpresa();
+    const presente = raiz.length === 8 && fech.registros.some(r => core.raizDe(r.emit.doc) === raiz || (r.dest && core.raizDe(r.dest.doc) === raiz));
+    if (!presente) return viewEscolherEmpresa(raiz);
+    const ap = apuracaoAtual();
+    return `${barraFech(ap)}<div class="grid"><div class="col">${blocoApuracao(ap)}${blocoContagem(ap)}</div><div class="col">${blocoProblemas(ap)}${blocoFornecedores(ap)}${blocoCfop(ap)}</div></div>${blocoNotas(ap)}`;
+  }
+  function viewEscolherEmpresa(raiz) {
+    const cands = core.detectarEmpresa(fech.registros);
+    return `<section class="box sec" aria-labelledby="h-emp"><h3 id="h-emp"><span>Qual é a sua empresa?</span><span class="lbl">${plural(fech.registros.length, 'nota lida', 'notas lidas')}</span></h3>
+      <p class="note">${raiz.length === 8 ? `O CNPJ ${esc(fmtRaiz(raiz))}, informado no topo, não aparece nestas notas.` : 'O CNPJ da empresa separa as vendas das compras.'} Estes são os CNPJs que mais aparecem nelas:</p>
+      <div class="acoes">${cands.map(c => `<button type="button" data-empresa="${c.raiz}">${esc(fmtRaiz(c.raiz))} · ${esc(c.nome || 'sem nome')} · ${plural(c.notas, 'nota', 'notas')}</button>`).join('')}</div>
+      <p class="note">Ou digite os 8 primeiros dígitos do CNPJ no campo do topo.</p></section>`;
+  }
+  function barraFech(ap) {
+    const MES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+    const nomeMes = m => `${MES[+m.slice(5, 7) - 1]}/${m.slice(0, 4)}`;
+    return `<div class="box fbarra"><div class="grupo">
+        <div><div class="lbl">Empresa</div><div class="mono">${esc(fmtRaiz(raizEmpresa()))}</div></div>
+        <div><div class="lbl">Período das notas</div><div class="mono">${ap.periodo.de ? `${esc(dataBR(ap.periodo.de))} a ${esc(dataBR(ap.periodo.ate))}` : '—'}</div></div>
+        ${ap.periodo.meses.length > 1 ? `<div class="campo sem-impressao"><label class="lbl" for="f-mes">Mês</label><select id="f-mes"><option value="">Todos (${ap.periodo.meses.length} meses)</option>${ap.periodo.meses.map(m => `<option value="${m}"${m === fech.mes ? ' selected' : ''}>${nomeMes(m)}</option>`).join('')}</select></div>` : ''}
+      </div>
+      <div class="acoes-rel"><button type="button" id="f-xlsx">Exportar Excel</button><button type="button" id="f-pdf">Salvar PDF</button><button type="button" id="f-limpar">Limpar</button></div></div>`;
+  }
+  function blocoApuracao(ap) {
+    const a = ap.apuracao, res = a.resultado, credor = res.total < 0;
+    const linha = (rot, v) => `<tr><td>${rot}</td><td class="n">${brl(v.cbs)}</td><td class="n">${brl(v.ibs)}</td><td class="n">${brl(v.total)}</td></tr>`;
+    return `<section class="box sec" aria-labelledby="h-ap">
+      <h3 id="h-ap"><span>Apuração simulada de 2027</span><span class="lbl">CBS ${esc(pct(cfg.cbs27))} + IBS 0,10%</span></h3>
+      <div><div class="lbl">${credor ? 'Saldo credor: crédito que sobra para os meses seguintes' : 'A empresa pagaria'}</div><div class="big">${brl(Math.abs(res.total))}</div>
+        <p class="note" style="margin-top:8px">CBS ${brl(res.cbs)} · IBS ${brl(res.ibs)}. CBS só abate CBS, e IBS só abate IBS.</p></div>
+      <div class="tw"><table class="compacta"><thead><tr><th></th><th>CBS</th><th>IBS</th><th>Total</th></tr></thead><tbody>
+        ${linha('Débito das vendas', a.debito)}
+        ${a.devVenda.total ? linha('(−) Devoluções de vendas', a.devVenda) : ''}
+        ${linha('(−) Crédito das compras', a.credito)}
+        ${a.devCompra.total ? linha('(+) Devoluções de compras', a.devCompra) : ''}
+      </tbody><tfoot><tr><td>= ${credor ? 'Saldo credor' : 'A pagar'}</td><td class="n">${brl(res.cbs)}</td><td class="n">${brl(res.ibs)}</td><td class="n">${brl(res.total)}</td></tr></tfoot></table></div>
+      ${ap.naoEstimado.notas ? `<p class="note"><b>${plural(ap.naoEstimado.notas, 'compra', 'compras')} de fornecedor do Simples ou de regime não identificado</b> (${brl(ap.naoEstimado.valor)}) sem crédito estimado: o crédito delas é só o que o fornecedor recolhe no DAS, e a partir de 2027 vem destacado na nota.</p>` : ''}
+      <p class="note">Notas de 2026 foram recalculadas com as alíquotas de 2027 (o IBS/CBS de 2026 é teste e não é recolhido). Notas de 2027 em diante entram com o valor destacado nelas.</p>
+      <div class="slider"><label class="lbl" for="f-cbs">CBS 2027</label><input id="f-cbs" type="range" min="8" max="12" step="0.1" value="${cfg.cbs27}"><span class="mono">${pct(cfg.cbs27)}</span></div>
+    </section>`;
+  }
+  function blocoIgnorados() {
+    const n = fech.ignorados.length, MAX = 200;
+    return `<details><summary>${plural(n, 'arquivo ignorado', 'arquivos ignorados')}</summary><ul class="avisos">${fech.ignorados.slice(0, MAX).map(i => `<li><b>${esc(i.arquivo)}</b>: ${esc(i.motivo)}</li>`).join('')}${n > MAX ? `<li>… e mais ${n - MAX}; a lista completa vai no Excel.</li>` : ''}</ul></details>`;
+  }
+  function blocoContagem(ap) {
+    const n = k => ap.cont.papel[k] || 0;
+    const CLS = { 'Conforme': 'ok', 'Com alertas': 'warn', 'Não conforme': 'bad' };
+    return `<section class="box sec" aria-labelledby="h-cont">
+      <h3 id="h-cont"><span>Notas lidas</span><span class="lbl">${plural(ap.cont.total, 'nota', 'notas')}${fech.mes ? ' no mês' : ''}</span></h3>
+      <dl class="facts">
+        <div><dt>Vendas</dt><dd class="mono">${n('venda')}</dd></div>
+        <div><dt>Compras</dt><dd class="mono">${n('compra')}</dd></div>
+        <div><dt>Devoluções</dt><dd class="mono">${n('devVenda') + n('devCompra')}</dd></div>
+        <div><dt>Transferências entre filiais</dt><dd class="mono">${n('transferencia')}</dd></div>
+        <div><dt>Canceladas</dt><dd class="mono">${n('cancelada')}</dd></div>
+        <div><dt>Fora da apuração</dt><dd class="mono">${n('entradaPropria') + n('outra') + n('denegada')}</dd></div>
+      </dl>
+      <div class="chips">${Object.entries(ap.cont.veredito).map(([p, q]) => `<span class="chip ${chipSit(CLS[p])}">${esc(p)}: ${q}</span>`).join('')}</div>
+      ${fech.repetidas ? `<p class="note">${plural(fech.repetidas, 'arquivo repetido (mesma chave de acesso) contado', 'arquivos repetidos (mesma chave de acesso) contados')} uma vez só.</p>` : ''}
+      ${fech.ignorados.length ? blocoIgnorados() : ''}
+    </section>`;
+  }
+  // o mesmo problema em vários itens vira uma linha só: "Alíquota errada para o ano (4 itens)"
+  function resumoProblemas(problemas) {
+    const grupos = new Map();
+    problemas.forEach(p => { const g = grupos.get(p.titulo) || { titulo: p.titulo, n: 0, item: p.item }; g.n++; grupos.set(p.titulo, g); });
+    const linhas = [...grupos.values()].map(g => g.n > 1 ? `${g.titulo} (${g.n} ${g.item ? 'itens' : 'vezes'})` : g.titulo + (g.item ? ` (${g.item})` : ''));
+    return esc(linhas.slice(0, 3).join(' · ') + (linhas.length > 3 ? ` · e mais ${linhas.length - 3}` : ''));
+  }
+  function blocoProblemas(ap) {
+    const ps = ap.notas.filter(x => x.r.veredito.cls === 'bad' || x.r.veredito.cls === 'warn').sort((a, b) => (b.r.veredito.cls === 'bad') - (a.r.veredito.cls === 'bad'));
+    const h = `<h3 id="h-prob"><span>Notas com problemas</span><span class="lbl">${ps.length}</span></h3>`;
+    if (!ps.length) return `<section class="box sec" aria-labelledby="h-prob">${h}<p class="note">Nenhuma nota com erro ou alerta.</p></section>`;
+    const MAX = 30;
+    return `<section class="box sec" aria-labelledby="h-prob">${h}<ul class="probs">${ps.slice(0, MAX).map(({ r, papel }) => `<li>
+        <div class="topo"><span><span class="chip ${chipSit(r.veredito.cls)}">${esc(r.veredito.palavra)}</span> <b>${esc(r.modelo)} ${esc(r.numero || '')}</b> · ${esc(dataBR(r.data))} · ${esc(PAPEL[papel])}</span>${fech.textos.has(r.id) ? `<button type="button" class="copy" data-abrir="${r.id}">Abrir no auditor</button>` : ''}</div>
+        <div class="sub2">${esc(contraparte(r, papel))}</div>
+        <div class="det">${resumoProblemas(r.problemas)}</div></li>`).join('')}</ul>
+      ${ps.length > MAX ? `<p class="note">Mostrando ${MAX} de ${ps.length}. A lista completa vai no Excel.</p>` : ''}</section>`;
+  }
+  function blocoFornecedores(ap) {
+    const fs = ap.fornecedores, MAX = 25;
+    const h = `<h3 id="h-forn"><span>Fornecedores</span><span class="lbl">${fs.length} · crédito ${brl(ap.apuracao.credito.total)}</span></h3>`;
+    if (!fs.length) return `<section class="box sec" aria-labelledby="h-forn">${h}<p class="note">Nenhuma nota de compra.</p></section>`;
+    return `<section class="box sec" aria-labelledby="h-forn">${h}<div class="tw"><table class="compacta"><thead><tr><th>Fornecedor</th><th>Notas</th><th>Valor</th><th>Crédito 2027</th><th>Situação</th></tr></thead><tbody>${fs.slice(0, MAX).map(f => `<tr><td><div class="prod">${esc(f.nome || 'Sem nome')}</div><div class="sub2 mono">${esc(fmtDoc(f.doc))} · ${esc(REGIME_NOME[f.regime] || 'regime não identificado')}</div></td><td class="n">${f.notas}</td><td class="n">${brl(f.valor)}</td><td class="n">${f.naoEstimado === f.notas ? 'não estimado' : brl(f.credito.total) + (f.naoEstimado ? ' *' : '')}</td><td><span class="chip ${chipSit(f.pior)}">${SIT[f.pior] || '—'}</span></td></tr>`).join('')}</tbody></table></div>${fs.length > MAX ? `<p class="note">Mostrando os ${MAX} maiores de ${fs.length}. Todos vão no Excel.</p>` : ''}${fs.some(f => f.naoEstimado && f.naoEstimado < f.notas) ? '<p class="note">* Parte das notas desse fornecedor ficou sem crédito estimado.</p>' : ''}</section>`;
+  }
+  function blocoCfop(ap) {
+    if (!ap.cfops.length) return '';
+    return `<section class="box sec" aria-labelledby="h-cfop"><h3 id="h-cfop"><span>Por CFOP</span><span class="lbl">${ap.cfops.length}</span></h3><div class="tw"><table class="compacta"><thead><tr><th>CFOP</th><th>Itens</th><th>Valor dos itens</th><th>IBS/CBS 2027</th></tr></thead><tbody>${ap.cfops.map(c => `<tr><td class="c">${esc(c.cfop)}</td><td class="n">${c.itens}</td><td class="n">${brl(c.valor)}</td><td class="n">${brl(core.r2(c.cbs + c.ibs))}</td></tr>`).join('')}</tbody></table></div></section>`;
+  }
+  function valorNaApuracao(x) {
+    if (x.efeito === 'naoEstimado') return 'não estimado';
+    if (!x.efeito) return '—';
+    const v = x.credito || x.t;
+    return brl(core.r2(v.cbs + v.ibs));
+  }
+  function blocoNotas(ap) {
+    const MAX = 200, ns = ap.notas;
+    const linhaCls = { ok: 'ok', warn: 'warn', bad: 'err' };
+    return `<section class="box sec" aria-labelledby="h-notas"><h3 id="h-notas"><span>Todas as notas</span><span class="lbl">${ns.length}</span></h3><div class="tw"><table><thead><tr><th>Data</th><th>Nota</th><th>Papel</th><th>Contraparte</th><th>Valor</th><th>IBS/CBS 2027</th><th>Situação</th></tr></thead><tbody>${ns.slice(0, MAX).map(x => `<tr class="r-${linhaCls[x.r.veredito.cls] || 'info'}"><td class="c">${esc(dataBR(x.r.data))}</td><td class="c">${esc(x.r.modelo)} ${esc(x.r.numero || '')}</td><td>${esc(PAPEL[x.papel])}</td><td>${esc(contraparte(x.r, x.papel))}</td><td class="n">${brl(x.r.valor)}</td><td class="n">${valorNaApuracao(x)}</td><td><span class="chip ${chipSit(x.r.veredito.cls)}">${esc(x.r.veredito.palavra)}</span></td></tr>`).join('')}</tbody></table></div>${ns.length > MAX ? `<p class="note">Mostrando ${MAX} de ${ns.length}. A lista completa vai no Excel.</p>` : ''}</section>`;
+  }
+  function renderFech() {
+    const el = $('f-out');
+    if (!el) return;
+    el.innerHTML = viewFechamento();
+    el.querySelectorAll('[data-empresa]').forEach(b => b.addEventListener('click', () => {
+      cfg.cnpj = fmtRaiz(b.dataset.empresa); elCnpj.value = cfg.cnpj; store.set('rtc.cnpj', cfg.cnpj); reanalisar(); renderFech();
+    }));
+    const mes = $('f-mes');
+    if (mes) mes.addEventListener('change', () => { fech.mes = mes.value; renderFech(); });
+    el.querySelectorAll('[data-abrir]').forEach(b => b.addEventListener('click', () => abrirNoAuditor(+b.dataset.abrir)));
+    const xl = $('f-xlsx');
+    if (xl) xl.addEventListener('click', exportarFechamento);
+    const pdf = $('f-pdf');
+    if (pdf) pdf.addEventListener('click', () => window.print());
+    const lim = $('f-limpar');
+    if (lim) lim.addEventListener('click', () => {
+      if (lim.dataset.armado !== '1') { lim.dataset.armado = '1'; lim.textContent = 'Clique de novo para limpar'; return; }
+      limparFech();
+    });
+    const sl = $('f-cbs');
+    if (sl) {
+      sl.addEventListener('input', () => { const v = sl.nextElementSibling; if (v) v.textContent = pct(Math.round(parseFloat(sl.value) * 10) / 10); });
+      sl.addEventListener('change', () => { setCbs(parseFloat(sl.value)); const n = $('f-cbs'); if (n) n.focus(); });
+    }
+  }
+  const fDrop = $('f-drop'), fFile = $('f-file'), fPasta = $('f-pasta');
+  fDrop.addEventListener('click', () => fFile.click());
+  fDrop.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fFile.click(); } });
+  ['dragenter', 'dragover'].forEach(t => fDrop.addEventListener(t, e => { e.preventDefault(); fDrop.classList.add('over'); }));
+  ['dragleave', 'drop'].forEach(t => fDrop.addEventListener(t, e => { e.preventDefault(); fDrop.classList.remove('over'); }));
+  fDrop.addEventListener('drop', fechSoltar);
+  fFile.addEventListener('change', () => { fechAdicionar(Array.from(fFile.files).map(f => ({ nome: f.name, arquivo: f }))); fFile.value = ''; });
+  $('f-escolher-pasta').addEventListener('click', () => fPasta.click());
+  fPasta.addEventListener('change', () => { fechAdicionar(Array.from(fPasta.files).map(f => ({ nome: f.webkitRelativePath || f.name, arquivo: f }))); fPasta.value = ''; });
+  renderFech();
+
+  // ----------------------------------------------------------- relatórios: Excel (.xlsx) e Salvar PDF (impressão)
+  const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+  const hojeISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+  const agora = () => new Date().toLocaleString('pt-BR');
+  function baixar(nome, bytes, tipo) {
+    const url = URL.createObjectURL(new Blob([bytes], { type: tipo }));
+    const a = document.createElement('a');
+    a.href = url; a.download = nome; a.hidden = true;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
+  }
+  // cabeçalho do relatório impresso, para Salvar PDF pelo botão ou pelo Ctrl+P
+  window.addEventListener('beforeprint', () => {
+    const titulo = { auditar: 'Auditoria de nota', fechamento: 'Fechamento do mês', credito: 'Calculadora de crédito' }[modoAtual];
+    $('impressao-topo').textContent = `Auditor de Notas RTC · ${titulo} · gerado em ${agora()} · CBS 2027 no cenário de ${pct(cfg.cbs27)} · ferramenta de apoio, não substitui a contabilidade`;
+  });
+  const colsResumo = [{ titulo: 'Campo', largura: 34 }, { titulo: 'Valor', largura: 70 }];
+  const colsChecks = [{ titulo: 'Gravidade', largura: 11 }, { titulo: 'Conferência', largura: 48 }, { titulo: 'Detalhe', largura: 90 }, { titulo: 'Item', largura: 40 }];
+  const GRAV = { err: 'Erro', warn: 'Alerta', info: 'Aviso', ok: 'OK' };
+
+  function exportarAuditoria() {
+    const a = state.arquivos[state.sel];
+    if (!a || !a.res) return;
+    const r = a.res, d = r.doc;
+    const conferencias = { nome: 'Conferências', colunas: colsChecks, linhas: r.checks.map(c => [GRAV[c.sev], c.titulo, c.det || '', c.item ? `Item ${c.item.n} · ${c.item.xProd || ''}` : '']) };
+    const situacao = `${r.v.palavra} · ${plural(r.v.e, 'erro', 'erros')} · ${plural(r.v.w, 'alerta', 'alertas')}`;
+    let planilhas, arquivo;
+    if (d.tipo === 'NFE') {
+      const anoSim = Math.max(2027, Math.min(2028, d.ano + (d.ano < 2027 ? 1 : 0)));
+      const sim = core.simularNFe(d, anoSim, cfg.cbs27);
+      const modelo = d.mod === '65' ? 'NFC-e' : 'NF-e';
+      planilhas = [
+        { nome: 'Resumo', filtro: false, colunas: colsResumo, linhas: [
+          ['Documento', `${modelo} nº ${d.numero} · série ${d.serie}`], ['Chave de acesso', d.chave || ''], ['Emissão', dataBR(d.dhEmi)], ['Natureza da operação', d.natOp || ''],
+          ['Emitente', `${d.emit.nome || ''} · ${fmtDoc(d.emit.doc)}`], ['Destinatário', d.dest ? `${d.dest.nome || ''} · ${fmtDoc(d.dest.doc)}` : 'Consumidor não identificado'],
+          ['Valor da nota', brl(d.tot.vNF)], ['Situação', situacao],
+          [`IBS + CBS em ${anoSim}`, `${brl(sim.total)} (CBS ${brl(sim.cbs)} + IBS ${brl(sim.ibs)}; CBS de ${pct(cfg.cbs27)}, IBS de 0,10%)`],
+          ['Gerado em', agora()], ['Observação', 'Ferramenta de apoio: não substitui a contabilidade.']] },
+        conferencias,
+        { nome: 'Itens', colunas: [{ titulo: 'Item', largura: 6 }, { titulo: 'Código', largura: 12 }, { titulo: 'Produto', largura: 42 }, { titulo: 'NCM', largura: 12 }, { titulo: 'CFOP', largura: 8 }, { titulo: 'CST', largura: 7 }, { titulo: 'cClassTrib', largura: 11 }, { titulo: 'Base', tipo: 'moeda' }, { titulo: 'CBS na nota', tipo: 'moeda' }, { titulo: 'CBS calculada', tipo: 'moeda' }, { titulo: `IBS + CBS ${anoSim}`, tipo: 'moeda' }, { titulo: 'Situação', largura: 10 }],
+          linhas: d.itens.map((it, k) => { const b = it.ibs, p = sim.porItem[k]; return [it.n, it.cProd, it.xProd, fmtNCM(it.ncm), it.cfop, b ? b.cst : '', b ? b.cc : '', b && b.g ? b.vBC : it.baseEsp, b && b.cbs ? b.cbs.v : null, b && b.cbs && b.cbs.vEsp != null ? b.cbs.vEsp : null, core.r2(p.cbs + p.ibs), GRAV[it.status] || '']; }) }
+      ];
+      arquivo = `auditoria-${modelo.toLowerCase().replace('-', '')}-${d.numero}`;
+    } else if (d.tipo === 'NFSE') {
+      const sim = core.simularNFSe(d, cfg.cbs27);
+      planilhas = [
+        { nome: 'Resumo', filtro: false, colunas: colsResumo, linhas: [
+          ['Documento', `NFS-e nº ${d.numero || '—'}`], ['Chave de acesso', d.chave || ''], ['Emissão', dataBR(d.dhEmi || d.competencia)],
+          ['Prestador', `${d.prest.nome || ''} · ${fmtDoc(d.prest.doc)}`], ['Regime do prestador', REGIME_NOME[d.regime] || 'Não identificado'],
+          ['Tomador', d.tom ? `${d.tom.nome || ''} · ${fmtDoc(d.tom.doc)}` : '—'], ['Serviço', `${d.serv.cod || ''} ${d.serv.desc || ''}`.trim()],
+          ['Valor do serviço', brl(d.valor)], ['Situação', situacao], ['Crédito em 2027', sim.credito == null ? 'Baixo (só o que o prestador recolhe no DAS)' : brl(sim.credito)],
+          ['Gerado em', agora()], ['Observação', 'Ferramenta de apoio: não substitui a contabilidade.']] },
+        conferencias
+      ];
+      arquivo = `auditoria-nfse-${d.numero || 'sem-numero'}`;
+    } else {
+      planilhas = [{ nome: 'Resumo', filtro: false, colunas: colsResumo, linhas: [['Documento', 'PDF de NF-e/NFC-e (DANFE)'], ['Chave de acesso', d.chave || ''], ['Valor total', brl(d.valor)], ['Situação', r.v.palavra], ['Gerado em', agora()]] }, conferencias];
+      arquivo = 'auditoria-danfe';
+    }
+    baixar(`${arquivo}.xlsx`, core.gerarXlsx(planilhas), XLSX_MIME);
+  }
+
+  function exportarCredito() {
+    if (!lista.length) return;
+    const t = { pago: 0, cbs: 0, ibs: 0, cred: 0, custo: 0, reg: 0 };
+    const linhas = lista.map(e => {
+      const r = core.calcularCredito(e, cfg.cbs27), c = r.credito;
+      t.pago += r.pago; t.reg += r.regular.total;
+      if (c) { t.cbs += c.cbs || 0; t.ibs += c.ibs || 0; t.cred += c.total; t.custo += r.custo; }
+      const obs = e.regime === 'SIMPLES' && !c ? 'Simples: informe o percentual que vem na nota para calcular' : e.regime === 'REGULAR' && !e.incluso ? 'IBS/CBS somado por fora do valor' : '';
+      return [e.desc || '', REG[e.regime], e.regime === 'REGULAR' && e.red ? e.red : null, r.pago, e.regime === 'REGULAR' ? c.base : null, c && c.cbs != null ? c.cbs : null, c && c.ibs != null ? c.ibs : null, c ? c.total : null, r.custo, r.regular.total, obs];
+    });
+    const r2 = core.r2;
+    baixar(`credito-compras-${hojeISO()}.xlsx`, core.gerarXlsx([
+      { nome: 'Compras', colunas: [{ titulo: 'Descrição', largura: 36 }, { titulo: 'Fornecedor', largura: 18 }, { titulo: 'Redução', tipo: 'pct', largura: 10 }, { titulo: 'Total pago', tipo: 'moeda' }, { titulo: 'Base do IBS/CBS', tipo: 'moeda' }, { titulo: 'Crédito de CBS', tipo: 'moeda' }, { titulo: 'Crédito de IBS', tipo: 'moeda' }, { titulo: 'Crédito total', tipo: 'moeda' }, { titulo: 'Custo real', tipo: 'moeda' }, { titulo: 'Crédito se fosse regime regular', tipo: 'moeda', largura: 18 }, { titulo: 'Observação', largura: 50 }],
+        linhas, total: ['Total', '', null, r2(t.pago), null, r2(t.cbs), r2(t.ibs), r2(t.cred), r2(t.custo), r2(t.reg), ''] },
+      { nome: 'Premissas', filtro: false, colunas: colsResumo, linhas: [['CBS de 2027 (cenário)', pct(cfg.cbs27)], ['IBS de 2027', '0,05% estadual + 0,05% municipal'], ['Gerado em', agora()], ['Observação', 'Estimativa. O crédito real é o IBS/CBS destacado na nota do fornecedor. Ferramenta de apoio: não substitui a contabilidade.']] }
+    ]), XLSX_MIME);
+  }
+
+  function exportarFechamento() {
+    if (!fech.registros.length) return;
+    const raiz = raizEmpresa(), ap = apuracaoAtual(), a = ap.apuracao;
+    const lin = (rot, v) => [rot, v.cbs, v.ibs, v.total];
+    const nota = r => `${r.modelo} ${r.numero || ''}`.trim();
+    const problemas = [];
+    ap.notas.forEach(({ r, papel }) => r.problemas.forEach(p => problemas.push([r.data, nota(r), PAPEL[papel], r.emit.nome || '', fmtDoc(r.emit.doc), r.veredito.palavra, GRAV[p.sev], p.titulo, p.item])));
+    baixar(`fechamento-${fech.mes || (ap.periodo.ate || hojeISO()).slice(0, 7)}.xlsx`, core.gerarXlsx([
+      { nome: 'Resumo', filtro: false, colunas: [{ titulo: 'Apuração simulada de 2027', largura: 46 }, { titulo: 'CBS', tipo: 'moeda', largura: 16 }, { titulo: 'IBS', tipo: 'moeda', largura: 16 }, { titulo: 'Total', tipo: 'moeda', largura: 16 }],
+        linhas: [
+          lin('Débito das vendas', a.debito), lin('(−) Devoluções de vendas', a.devVenda), lin('(−) Crédito das compras', a.credito), lin('(+) Devoluções de compras', a.devCompra),
+          lin(a.resultado.total < 0 ? '= Saldo credor' : '= A pagar', a.resultado), [],
+          ['Empresa (raiz do CNPJ)', fmtRaiz(raiz)], ['Período das notas', ap.periodo.de ? `${dataBR(ap.periodo.de)} a ${dataBR(ap.periodo.ate)}` : '—'],
+          ['CBS de 2027 (cenário)', pct(cfg.cbs27)], ['IBS de 2027', '0,05% estadual + 0,05% municipal'],
+          ['Notas consideradas', String(ap.cont.total)], ...Object.entries(ap.cont.papel).map(([p, q]) => [`   ${PAPEL[p]}`, String(q)]),
+          ['Compras sem crédito estimado (Simples ou regime não identificado)', ap.naoEstimado.notas ? `${plural(ap.naoEstimado.notas, 'nota', 'notas')} · ${brl(ap.naoEstimado.valor)}` : '0'],
+          ['Arquivos repetidos', String(fech.repetidas)], ['Arquivos ignorados', String(fech.ignorados.length)], ['Gerado em', agora()],
+          ['Observação', 'Notas de 2026 recalculadas com as alíquotas de 2027; de 2027 em diante, valor destacado na nota. Ferramenta de apoio: não substitui a contabilidade.']] },
+      { nome: 'Notas', colunas: [{ titulo: 'Data', tipo: 'data', largura: 11 }, { titulo: 'Modelo', largura: 8 }, { titulo: 'Número', largura: 10 }, { titulo: 'Série', largura: 6 }, { titulo: 'Papel', largura: 22 }, { titulo: 'Na apuração', largura: 26 }, { titulo: 'Emitente', largura: 34 }, { titulo: 'CNPJ/CPF do emitente', largura: 20 }, { titulo: 'Destinatário', largura: 34 }, { titulo: 'CNPJ/CPF do destinatário', largura: 20 }, { titulo: 'Valor', tipo: 'moeda' }, { titulo: 'CBS 2027', tipo: 'moeda' }, { titulo: 'IBS 2027', tipo: 'moeda' }, { titulo: 'Origem do valor', largura: 14 }, { titulo: 'Situação', largura: 14 }, { titulo: 'Erros', tipo: 'inteiro', largura: 7 }, { titulo: 'Alertas', tipo: 'inteiro', largura: 8 }, { titulo: 'Problemas', largura: 70 }, { titulo: 'Chave de acesso', largura: 50 }, { titulo: 'Arquivo', largura: 40 }],
+        linhas: ap.notas.map(x => {
+          const r = x.r, v = x.efeito && x.efeito !== 'naoEstimado' ? (x.credito || x.t) : null;
+          return [r.data, r.modelo, r.numero || '', r.serie || '', PAPEL[x.papel], x.efeito ? EFEITO[x.efeito] : 'Fora da apuração', r.emit.nome || '', fmtDoc(r.emit.doc), r.dest ? r.dest.nome || '' : '', r.dest ? fmtDoc(r.dest.doc) : '', r.valor, v ? v.cbs : null, v ? v.ibs : null, r.origem === 'destacado' ? 'Destacado na nota' : 'Simulado', r.veredito.palavra, r.veredito.e, r.veredito.w, r.problemas.map(p => p.titulo).join(' · '), r.chave || '', r.arquivo];
+        }) },
+      { nome: 'Fornecedores', colunas: [{ titulo: 'Fornecedor', largura: 40 }, { titulo: 'CNPJ', largura: 20 }, { titulo: 'Regime', largura: 18 }, { titulo: 'Notas', tipo: 'inteiro', largura: 8 }, { titulo: 'Valor', tipo: 'moeda' }, { titulo: 'Crédito de CBS', tipo: 'moeda' }, { titulo: 'Crédito de IBS', tipo: 'moeda' }, { titulo: 'Crédito total', tipo: 'moeda' }, { titulo: 'Notas sem crédito estimado', tipo: 'inteiro', largura: 14 }, { titulo: 'Pior situação', largura: 12 }],
+        linhas: ap.fornecedores.map(f => [f.nome || '', fmtDoc(f.doc), REGIME_NOME[f.regime] || 'Não identificado', f.notas, f.valor, f.credito.cbs, f.credito.ibs, f.credito.total, f.naoEstimado, SIT[f.pior] || '']) },
+      { nome: 'CFOP', colunas: [{ titulo: 'CFOP', largura: 8 }, { titulo: 'Itens', tipo: 'inteiro', largura: 8 }, { titulo: 'Valor dos itens', tipo: 'moeda' }, { titulo: 'CBS 2027', tipo: 'moeda' }, { titulo: 'IBS 2027', tipo: 'moeda' }],
+        linhas: ap.cfops.map(c => [c.cfop, c.itens, c.valor, c.cbs, c.ibs]) },
+      { nome: 'Problemas', colunas: [{ titulo: 'Data', tipo: 'data', largura: 11 }, { titulo: 'Nota', largura: 14 }, { titulo: 'Papel', largura: 22 }, { titulo: 'Emitente', largura: 34 }, { titulo: 'CNPJ/CPF do emitente', largura: 20 }, { titulo: 'Situação', largura: 14 }, { titulo: 'Gravidade', largura: 10 }, { titulo: 'Problema', largura: 60 }, { titulo: 'Item', largura: 40 }], linhas: problemas },
+      { nome: 'Ignorados', colunas: [{ titulo: 'Arquivo', largura: 60 }, { titulo: 'Motivo', largura: 60 }], linhas: fech.ignorados.map(i => [i.arquivo, i.motivo]) }
+    ]), XLSX_MIME);
+  }
+
   setModo(store.get('rtc.modo'));
 
   // ----------------------------------------------------------- versão nova: atualização automática
@@ -1142,6 +1909,8 @@ function criarCore(T, DOMP) {
     if (!pendente) return;
     if (!document.hidden && Date.now() - ultimaAcao < 30000) return; // a pessoa está usando: espera parar ou sair da aba
     pendente = false;
+    // o fechamento do mês não cabe na sessionStorage: com ele aberto, avisa em vez de recarregar
+    if (fech.registros.length || fech.processando) { mostrarAviso('Saiu uma versão nova do app. Ao atualizar, o fechamento do mês precisará ser refeito.', true); return; }
     if (guardarSessao()) recarregar();
     else mostrarAviso('Saiu uma versão nova do app. Ao atualizar, as notas abertas precisarão ser soltas de novo.', true);
   }
