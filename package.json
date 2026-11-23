@@ -1,0 +1,17 @@
+{
+  "name": "auditor-notas-rtc",
+  "private": true,
+  "description": "Auditor de Notas RTC: confere IBS/CBS de notas fiscais, faz o fechamento do mês e calcula o crédito das compras. Site estático: tudo roda no navegador.",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node build.mjs && node testes/teste_nucleo.mjs && node testes/teste_navegador.mjs && node testes/teste_atualizacao.mjs",
+    "test:nucleo": "node testes/teste_nucleo.mjs",
+    "test:navegador": "node build.mjs && node testes/teste_navegador.mjs",
+    "tabelas": "python ferramentas/atualizar_tabelas.py"
+  },
+  "devDependencies": {
+    "@xmldom/xmldom": "0.9.12",
+    "puppeteer-core": "25.18.1"
+  }
+}
