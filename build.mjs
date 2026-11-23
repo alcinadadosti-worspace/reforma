@@ -1,10 +1,12 @@
 // Monta o Auditor de Notas a partir do template. Sem dependências (Node 18+).
 //
 //   public/index.html   -> o site (publicado pelo Render; também abre com duplo clique)
-//   auditor-notas.html  -> mesma página sem <!doctype>, usada no Artifact do Claude (fora do git)
+//   public/versao.svg   -> assinatura desta versão (largura x altura); as abas abertas a conferem para se atualizar sozinhas
+//   auditor-notas.html  -> mesma página sem <!doctype>, usada no Artifact do Claude (fora do git; sem atualização automática)
 //
 // Uso: node build.mjs
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -44,7 +46,17 @@ ${html.slice(corte)}
 </html>
 `;
 
+// Assinatura da versão, derivada do conteúdo da página: muda a cada alteração publicada e se repete se o
+// conteúdo for o mesmo (republicar sem mudança não faz ninguém recarregar). Vira a largura x altura de versao.svg.
+const n = parseInt(createHash('sha256').update(pagina).digest('hex').slice(0, 8), 16);
+const [w, h] = [n % 997 + 1, Math.floor(n / 997) % 991 + 1];
+const versao = `${w}x${h}`;
+const site = pagina.replaceAll('__VERSAO__', versao);
+const artifact = html.replaceAll('__VERSAO__', '');
+if ([site, artifact].some(s => s.includes('__VERSAO__')) || !site.includes(`'${versao}'`)) throw new Error('placeholder __VERSAO__ ausente ou não substituído no template');
+
 mkdirSync(join(raiz, 'public'), { recursive: true });
-writeFileSync(join(raiz, 'public/index.html'), pagina);
-writeFileSync(join(raiz, 'auditor-notas.html'), html);
-console.log(`ok: public/index.html (${Math.round(Buffer.byteLength(pagina) / 1024)} KB)`);
+writeFileSync(join(raiz, 'public/index.html'), site);
+writeFileSync(join(raiz, 'public/versao.svg'), `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"/>\n`);
+writeFileSync(join(raiz, 'auditor-notas.html'), artifact);
+console.log(`ok: public/index.html (${Math.round(Buffer.byteLength(site) / 1024)} KB) · versão ${versao}`);

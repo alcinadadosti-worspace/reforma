@@ -28,14 +28,10 @@
   --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
   --bw: 3px;
   --sh: 6px;
+  color-scheme: light;
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #131417; --surface: #1c1e22; --ink: #eef0f3; --muted: #a9afb9; --line: #eef0f3;
-    --accent: #7d93ff; --accent-ink: #0d0f14; --ok: #3cc178; --ok-ink: #0d0f14; --warn: #f3bd2e; --warn-ink: #0d0f14;
-    --bad: #ff5d50; --bad-ink: #0d0f14; --neutral: #4a4f58; --neutral-ink: #eef0f3; --tint: #24272c; color-scheme: dark;
-  }
-}
+/* O tema de jornal vale sempre, mesmo com o navegador ou o sistema no modo escuro.
+   O tema escuro abaixo só entra se alguém puser data-theme="dark" no <html> (hoje nada põe). */
 :root[data-theme="dark"] {
   --bg: #131417; --surface: #1c1e22; --ink: #eef0f3; --muted: #a9afb9; --line: #eef0f3;
   --accent: #7d93ff; --accent-ink: #0d0f14; --ok: #3cc178; --ok-ink: #0d0f14; --warn: #f3bd2e; --warn-ink: #0d0f14;
@@ -181,6 +177,10 @@ table.lista tfoot td { font-weight: 800; border-top: var(--bw) solid var(--line)
 button.rm { padding: 2px 8px; font-size: 12px; box-shadow: 2px 2px 0 var(--line); }
 .avisos { margin: 0; padding-left: 18px; display: grid; gap: 8px; font-size: 13px; color: var(--muted); }
 .avisos b { color: var(--ink); }
+
+/* aviso de versão nova */
+.aviso-versao { position: fixed; z-index: 20; left: 50%; bottom: 18px; transform: translateX(-50%); width: min(560px, calc(100% - 32px)); display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; padding: 12px 16px; background: var(--ink); color: var(--surface); border: var(--bw) solid var(--line); box-shadow: var(--sh) var(--sh) 0 var(--accent); font-weight: 700; }
+.aviso-versao button { box-shadow: 3px 3px 0 var(--accent); padding: 6px 12px; }
 .mini { display: none; margin: 0; font: 900 20px var(--font-display); font-variant-numeric: tabular-nums; }
 .so-cel { display: none; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -332,6 +332,8 @@ button.rm { padding: 2px 8px; font-size: 12px; box-shadow: 2px 2px 0 var(--line)
     <span>A alíquota da CBS de 2027 ainda não foi fixada pelo Senado (prazo 15/12/2026). Ferramenta de apoio: não substitui a contabilidade.</span>
   </footer>
 </div>
+
+<div class="aviso-versao" id="aviso-versao" role="status" aria-live="polite" hidden></div>
 
 <script type="application/json" id="tabelas">__TABELAS__</script>
 <script type="text/plain" id="ex-erros">__EX_ERROS__</script>
@@ -1107,7 +1109,95 @@ function criarCore(T, DOMP) {
   syncCalc(); syncCbsCalc(); renderCalc();
   setModo(store.get('rtc.modo'));
 
-  // abre com um exemplo carregado
-  adicionarXML('EXEMPLO · nfe_2027_com_erros.xml', document.getElementById('ex-erros').textContent, true);
+  // ----------------------------------------------------------- versão nova: atualização automática
+  // A cada publicação, o build grava versao.svg com largura × altura iguais à assinatura desta página (VERSAO).
+  // A página confere esse arquivo de tempos em tempos. Por ser uma imagem do próprio site, a conferência cabe
+  // na CSP (img-src 'self'), e connect-src continua 'none'. Quando a versão muda, a página espera a pessoa
+  // parar de mexer (ou sair da aba), guarda as notas abertas e o que foi digitado na sessionStorage desta
+  // aba, recarrega pela rede (?v= evita o cache do CDN) e restaura tudo.
+  const VERSAO = '__VERSAO__';
+  const sess = {
+    get(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } },
+    set(k, v) { try { sessionStorage.setItem(k, v); return true; } catch (e) { return false; } },
+    del(k) { try { sessionStorage.removeItem(k); } catch (e) { /* sem armazenamento */ } }
+  };
+  let ultimaVerificacao = 0, pendente = false, ultimaAcao = Date.now();
+  ['pointerdown', 'keydown', 'input', 'wheel', 'touchstart'].forEach(t => document.addEventListener(t, () => { ultimaAcao = Date.now(); }, { capture: true, passive: true }));
+
+  function verificarVersao() {
+    if (!/^\d+x\d+$/.test(VERSAO) || !/^https?:$/.test(location.protocol) || navigator.onLine === false) return;
+    const agora = Date.now();
+    if (agora - ultimaVerificacao < 60000) return;
+    ultimaVerificacao = agora;
+    const img = new Image();
+    img.onload = () => { if (img.naturalWidth > 0 && `${img.naturalWidth}x${img.naturalHeight}` !== VERSAO) novaVersao(); };
+    img.src = 'versao.svg?t=' + agora;
+  }
+  function novaVersao() {
+    // recarregou há pouco e a versão ainda difere: o CDN pode estar com a página antiga; tenta de novo na próxima conferência
+    if (Date.now() - (+sess.get('rtc.atualizou') || 0) < 120000) return;
+    pendente = true;
+    tentarAtualizar();
+  }
+  function tentarAtualizar() {
+    if (!pendente) return;
+    if (!document.hidden && Date.now() - ultimaAcao < 30000) return; // a pessoa está usando: espera parar ou sair da aba
+    pendente = false;
+    if (guardarSessao()) recarregar();
+    else mostrarAviso('Saiu uma versão nova do app. Ao atualizar, as notas abertas precisarão ser soltas de novo.', true);
+  }
+  function recarregar() {
+    sess.set('rtc.atualizou', String(Date.now()));
+    sess.set('rtc.avisar', '1');
+    location.replace(location.pathname + '?v=' + Date.now());
+  }
+  function guardarSessao() {
+    const abertos = state.arquivos.filter(a => a.tipo);
+    return sess.set('rtc.restaurar', JSON.stringify({
+      arquivos: abertos.map(a => ({ nome: a.nome, tipo: a.tipo, texto: a.texto, items: a.items, exemplo: !!a.exemplo })),
+      sel: abertos.indexOf(state.arquivos[state.sel]),
+      rolagem: window.scrollY,
+      calc: { regime: calc.regime, incl: calc.incl, red: calc.red, valor: $('c-valor').value, icms: $('c-icms').value, sn: $('c-sn').value, desc: $('c-desc').value }
+    }));
+  }
+  function restaurarSessao() {
+    const bruto = sess.get('rtc.restaurar');
+    if (!bruto) return false;
+    sess.del('rtc.restaurar');
+    try {
+      const d = JSON.parse(bruto);
+      (d.arquivos || []).forEach(f => analisar(novo(f.nome, f.tipo === 'pdf' ? { tipo: 'pdf', items: f.items } : { tipo: 'xml', texto: f.texto, exemplo: f.exemplo })));
+      if (d.sel >= 0 && d.sel < state.arquivos.length) state.sel = d.sel;
+      const c = d.calc || {};
+      if (REG[c.regime]) calc.regime = c.regime;
+      calc.incl = c.incl !== false;
+      calc.red = [30, 60].includes(c.red) ? c.red : 0;
+      [['c-valor', c.valor], ['c-icms', c.icms], ['c-sn', c.sn], ['c-desc', c.desc]].forEach(([id, v]) => { $(id).value = typeof v === 'string' ? v : ''; });
+      syncCalc(); renderCalc(); render();
+      if (d.rolagem > 0) requestAnimationFrame(() => window.scrollTo(0, d.rolagem));
+      return state.arquivos.length > 0;
+    } catch (e) { return false; }
+  }
+  function mostrarAviso(texto, comBotao) {
+    const el = $('aviso-versao');
+    el.innerHTML = `<span>${esc(texto)}</span>${comBotao ? '<button type="button" id="aviso-atualizar">Atualizar agora</button>' : ''}`;
+    el.hidden = false;
+    if (comBotao) $('aviso-atualizar').addEventListener('click', recarregar);
+    else setTimeout(() => { el.hidden = true; }, 6000);
+  }
+
+  // tira o ?v= da barra de endereço depois de uma atualização
+  if (/(^|[?&])v=\d+/.test(location.search)) { try { history.replaceState(null, '', location.pathname + location.hash); } catch (e) { /* sem histórico */ } }
+  // abre com as notas de antes da atualização ou, se não houver, com um exemplo carregado
+  const restaurou = restaurarSessao();
+  if (!restaurou) adicionarXML('EXEMPLO · nfe_2027_com_erros.xml', document.getElementById('ex-erros').textContent, true);
+  if (sess.get('rtc.avisar')) { sess.del('rtc.avisar'); mostrarAviso(`App atualizado para a versão mais nova.${restaurou ? ' Suas notas continuam abertas.' : ''}`, false); }
+
+  setTimeout(verificarVersao, 10000);
+  setInterval(verificarVersao, 5 * 60000);
+  setInterval(tentarAtualizar, 10000);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) tentarAtualizar(); else verificarVersao(); });
+  window.addEventListener('focus', verificarVersao);
+  window.addEventListener('online', verificarVersao);
 })();
 </script>
