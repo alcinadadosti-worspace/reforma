@@ -4,7 +4,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800;900&family=IBM+Plex+Mono:wght@400;600&display=swap">
 <style>
-/* Layout: barra de controle no topo, zona de soltar em destaque, abas de arquivos e um painel de resultado em duas colunas (veredito + 2027 | conferências + itens). Neobrutalismo sóbrio: bordas grossas, sombras duras, cor só para estado. */
+/* Layout: barra de controle no topo e dois modos. "Auditar notas": zona de soltar em destaque, abas de arquivos e um painel de resultado em duas colunas (veredito + 2027 | conferências + itens). "Calculadora de crédito": formulário à esquerda | crédito da compra e lista somada à direita. Neobrutalismo sóbrio: bordas grossas, sombras duras, cor só para estado. */
 :root {
   --bg: #e7e9ec;
   --surface: #ffffff;
@@ -156,8 +156,36 @@ tr.r-info td:first-child { box-shadow: inset 6px 0 0 var(--neutral); }
 .foot { font-size: 12px; color: var(--muted); display: grid; gap: 4px; }
 .err-msg { padding: 14px 16px; border: var(--bw) solid var(--line); background: var(--bad); color: var(--bad-ink); font-weight: 600; }
 .example-flag { font: 800 11px var(--font-mono); text-transform: uppercase; letter-spacing: .08em; background: var(--ink); color: var(--surface); padding: 3px 8px; display: inline-block; }
+[hidden] { display: none !important; }
+
+/* modos: auditar notas | calculadora de crédito */
+.modos { display: flex; gap: 12px; flex-wrap: wrap; }
+.modos button { font: 900 15px var(--font-display); text-transform: uppercase; letter-spacing: -.01em; padding: 10px 16px; }
+.modos button[aria-selected="true"] { background: var(--ink); color: var(--surface); }
+.modo { display: grid; gap: 22px; }
+
+/* calculadora de crédito */
+.form { display: grid; gap: 18px; }
+.campo { display: grid; gap: 6px; min-width: 0; }
+.campo .seg button { text-align: left; }
+.ajuda { font-size: 12px; color: var(--muted); margin: 0; }
+input.valor-in { font-size: 26px; padding: 10px 12px; }
+.slider2 { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; }
+.acoes { display: flex; gap: 12px; flex-wrap: wrap; }
+button.prim { background: var(--accent); color: var(--accent-ink); }
+button.prim:hover { background: var(--accent); }
+button:disabled, button:disabled:hover { opacity: .45; cursor: not-allowed; transform: none; box-shadow: 4px 4px 0 var(--line); background: var(--surface); color: var(--ink); }
+table.lista { min-width: 600px; }
+table.lista tfoot td { font-weight: 800; border-top: var(--bw) solid var(--line); }
+button.rm { padding: 2px 8px; font-size: 12px; box-shadow: 2px 2px 0 var(--line); }
+.avisos { margin: 0; padding-left: 18px; display: grid; gap: 8px; font-size: 13px; color: var(--muted); }
+.avisos b { color: var(--ink); }
+.mini { display: none; margin: 0; font: 900 20px var(--font-display); font-variant-numeric: tabular-nums; }
+.so-cel { display: none; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 @media (max-width: 900px) {
   .grid { grid-template-columns: minmax(0, 1fr); }
+  .mini { display: block; }
 }
 @media (max-width: 560px) {
   .drop { grid-template-columns: 1fr; }
@@ -165,6 +193,9 @@ tr.r-info td:first-child { box-shadow: inset 6px 0 0 var(--neutral); }
   .facts { grid-template-columns: minmax(0, 1fr); }
   .bar .val { min-width: 84px; }
   .ctrl.cnpj { width: 100%; }
+  table.lista { min-width: 0; }
+  table.lista .opt { display: none; }
+  .so-cel { display: inline; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
@@ -175,7 +206,7 @@ tr.r-info td:first-child { box-shadow: inset 6px 0 0 var(--neutral); }
       <div class="mark" aria-hidden="true">RTC</div>
       <div>
         <h1>Auditor de Notas</h1>
-        <p>Confere IBS e CBS em NF-e, NFC-e e NFS-e e mostra o efeito em 2027</p>
+        <p>Confere IBS e CBS em NF-e, NFC-e e NFS-e, mostra o efeito em 2027 e calcula o crédito das compras</p>
       </div>
     </div>
     <div class="ctrls">
@@ -193,23 +224,107 @@ tr.r-info td:first-child { box-shadow: inset 6px 0 0 var(--neutral); }
     </div>
   </header>
 
-  <section class="drop box" id="drop" tabindex="0" role="button" aria-label="Escolher arquivos XML ou PDF de notas fiscais">
-    <div>
-      <h2>Solte a nota fiscal aqui</h2>
-      <p class="hint">XML ou PDF. Pode soltar vários de uma vez, ou clicar para escolher. Os arquivos são lidos só neste navegador; nada é enviado para fora.</p>
-    </div>
-    <div class="ext" aria-hidden="true"><span class="tag">XML NF-e / NFC-e</span><span class="tag">XML NFS-e</span><span class="tag">PDF DANFSe</span><span class="tag">PDF DANFE</span></div>
-    <input id="file" type="file" accept=".xml,.pdf,application/xml,text/xml,application/pdf" multiple hidden>
-  </section>
-
-  <div class="exrow">
-    <span class="lbl">Notas fictícias de exemplo</span>
-    <button type="button" id="ex-1">NF-e 2027 com erros</button>
-    <button type="button" id="ex-2">NF-e 2027 conforme</button>
+  <div class="modos" role="tablist" aria-label="Ferramentas">
+    <button type="button" role="tab" id="m-auditar" data-modo="auditar" aria-controls="modo-auditar" aria-selected="true">Auditar notas</button>
+    <button type="button" role="tab" id="m-credito" data-modo="credito" aria-controls="modo-credito" aria-selected="false">Calculadora de crédito</button>
   </div>
 
-  <nav class="tabs" id="tabs" role="tablist" aria-label="Notas carregadas"></nav>
-  <main id="out"></main>
+  <div class="modo" id="modo-auditar" role="tabpanel" aria-labelledby="m-auditar">
+    <section class="drop box" id="drop" tabindex="0" role="button" aria-label="Escolher arquivos XML ou PDF de notas fiscais">
+      <div>
+        <h2>Solte a nota fiscal aqui</h2>
+        <p class="hint">XML ou PDF. Pode soltar vários de uma vez, ou clicar para escolher. Os arquivos são lidos só neste navegador; nada é enviado para fora.</p>
+      </div>
+      <div class="ext" aria-hidden="true"><span class="tag">XML NF-e / NFC-e</span><span class="tag">XML NFS-e</span><span class="tag">PDF DANFSe</span><span class="tag">PDF DANFE</span></div>
+      <input id="file" type="file" accept=".xml,.pdf,application/xml,text/xml,application/pdf" multiple hidden>
+    </section>
+
+    <div class="exrow">
+      <span class="lbl">Notas fictícias de exemplo</span>
+      <button type="button" id="ex-1">NF-e 2027 com erros</button>
+      <button type="button" id="ex-2">NF-e 2027 conforme</button>
+    </div>
+
+    <nav class="tabs" id="tabs" role="tablist" aria-label="Notas carregadas"></nav>
+    <main id="out"></main>
+  </div>
+
+  <div class="modo" id="modo-credito" role="tabpanel" aria-labelledby="m-credito" hidden>
+    <div class="grid">
+      <div class="col">
+        <section class="box sec" aria-labelledby="h-nova">
+          <h3 id="h-nova"><span>Nova compra</span><span class="lbl">crédito a partir de 2027</span></h3>
+          <div class="form">
+            <div class="campo">
+              <label class="lbl" for="c-valor">Valor da nota (R$)</label>
+              <input id="c-valor" class="valor-in" type="text" inputmode="decimal" placeholder="0,00" autocomplete="off">
+              <p class="mini" id="c-mini" aria-hidden="true"></p>
+            </div>
+            <div class="campo">
+              <span class="lbl" id="c-reg-lbl">De quem você comprou</span>
+              <div class="seg" role="group" aria-labelledby="c-reg-lbl">
+                <button type="button" data-reg="REGULAR">Regime regular</button>
+                <button type="button" data-reg="SIMPLES">Simples Nacional</button>
+                <button type="button" data-reg="MEI">MEI</button>
+                <button type="button" data-reg="PF">Pessoa física</button>
+              </div>
+              <p class="ajuda">Na NFS-e o regime aparece no campo "Simples Nacional". Na dúvida, consulte o CNPJ do fornecedor no portal do Simples Nacional.</p>
+            </div>
+            <div class="campo" id="c-incl-box">
+              <span class="lbl" id="c-incl-lbl">O IBS/CBS já está dentro desse valor?</span>
+              <div class="seg" role="group" aria-labelledby="c-incl-lbl">
+                <button type="button" data-incl="1">Sim, é o total que paguei</button>
+                <button type="button" data-incl="0">Não, vem somado por fora</button>
+              </div>
+            </div>
+            <div class="campo" id="c-red-box">
+              <span class="lbl" id="c-red-lbl">O que você comprou tem redução de alíquota?</span>
+              <div class="seg" role="group" aria-labelledby="c-red-lbl">
+                <button type="button" data-red="0">Não (a maioria)</button>
+                <button type="button" data-red="30">30% · contador, advogado e outras profissões</button>
+                <button type="button" data-red="60">60% · saúde, educação, higiene</button>
+              </div>
+            </div>
+            <div class="campo" id="c-icms-box">
+              <label class="lbl" for="c-icms">ICMS da nota (R$, opcional)</label>
+              <input id="c-icms" type="text" inputmode="decimal" placeholder="0,00" autocomplete="off">
+              <p class="ajuda">Só em compra de mercadoria. Até 2032 o ICMS não entra na base do IBS/CBS; em branco, o crédito sai um pouco maior que o real.</p>
+            </div>
+            <div class="campo" id="c-sn-box" hidden>
+              <label class="lbl" for="c-sn">% de IBS + CBS na nota do fornecedor (opcional)</label>
+              <input id="c-sn" type="text" inputmode="decimal" placeholder="ex.: 2,5" autocomplete="off">
+              <p class="ajuda">A partir de 2027 a nota de quem é do Simples traz o percentual de IBS e CBS que ele recolhe no DAS. O crédito é esse valor.</p>
+            </div>
+            <div class="campo">
+              <label class="lbl" for="c-desc">Descrição (opcional)</label>
+              <input id="c-desc" type="text" placeholder="Ex.: manutenção do ar-condicionado" autocomplete="off" maxlength="80">
+            </div>
+            <div class="campo">
+              <label class="lbl" for="c-cbs">CBS 2027 (cenário)</label>
+              <div class="slider2"><input id="c-cbs" type="range" min="8" max="12" step="0.1"><span class="mono" id="c-cbs-v"></span></div>
+            </div>
+            <div class="acoes">
+              <button type="button" id="c-add" class="prim">Adicionar à lista</button>
+              <button type="button" id="c-limpar">Limpar campos</button>
+            </div>
+          </div>
+        </section>
+      </div>
+      <div class="col">
+        <section class="box sec" id="c-res" aria-labelledby="h-cred" aria-live="polite"></section>
+        <section class="box sec" id="c-lista" aria-labelledby="h-lista"></section>
+        <section class="box sec" aria-labelledby="h-ler">
+          <h3 id="h-ler"><span>Como ler</span></h3>
+          <ul class="avisos">
+            <li><b>Crédito não é dinheiro de volta:</b> ele abate o IBS/CBS que a empresa deve sobre as vendas. CBS só abate CBS, e IBS só abate IBS. Vira dinheiro (ressarcimento) só se sobrar crédito no mês.</li>
+            <li><b>Compras de 2026 não geram crédito:</b> o IBS/CBS que aparece na nota é de teste e ninguém recolhe.</li>
+            <li><b>Só vale com nota no CNPJ da empresa</b> e para compra usada na atividade. Nota no CPF ou uso pessoal de sócios e funcionários não dá crédito.</li>
+            <li><b>IBS baixo até 2028:</b> são 0,05% estadual + 0,05% municipal. A partir de 2029 ele sobe, e o crédito de IBS cresce junto.</li>
+          </ul>
+        </section>
+      </div>
+    </div>
+  </div>
 
   <footer class="foot">
     <span>Tabelas oficiais da calculadora da Receita Federal (repositório calculadora-rtc-regime-regular, base <span id="ver" class="mono"></span>): CST, cClassTrib, percentuais de redução e NCMs vinculados. Regras: LC 214/2025, NT 2025.002-RTC e Ato Conjunto RFB/CGIBS 4/2026.</span>
@@ -517,6 +632,46 @@ function criarCore(T, DOMP) {
     const credito = ns.regime === 'MEI' ? 0 : ns.regime === 'REGULAR' ? r2(v * t) : null;
     return { credRegular, credito, t };
   }
+
+  // ---------------------------------------------------------------- crédito de compras (digitação manual)
+  // Aceita "1.234,56", "1234,56", "1234.56", "R$ 1.234" e números. Devolve null se não houver número.
+  function lerValor(s) {
+    if (typeof s === 'number') return isFinite(s) ? s : null;
+    let t = String(s == null ? '' : s).replace(/[^\d,.-]/g, '');
+    if (!/\d/.test(t)) return null;
+    if (t.includes(',')) t = t.replace(/\./g, '').replace(',', '.');
+    else if (/^-?\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, '');
+    const x = parseFloat(t);
+    return isFinite(x) ? x : null;
+  }
+  // e = { valor, regime: REGULAR|SIMPLES|MEI|PF, incluso (IBS/CBS dentro do valor), red (0/30/60), icms, pSimples (% IBS+CBS do Simples) }
+  // Alíquotas de 2027-2028: CBS do cenário + IBS 0,05% UF + 0,05% município. Base arredondada a 2 casas antes de multiplicar,
+  // alíquota efetiva a 4 casas e IBS = UF + município já arredondados (política da calculadora da RFB desde a 1.7.2).
+  function calcularCredito(e, cbs27) {
+    const a = aliquotas(2027, cbs27);
+    const v = Math.max(0, n(e.valor));
+    const conta = (red, icms, incluso) => {
+      const f = 1 - red / 100;
+      const tx = { cbs: r4(a.cbs * f) / 100, uf: r4(a.uf * f) / 100, mun: r4(a.mun * f) / 100 };
+      const t = tx.cbs + tx.uf + tx.mun;
+      const liq = Math.max(0, v - Math.min(Math.max(0, icms), v));
+      const base = r2(incluso ? liq / (1 + t) : liq);
+      const cbs = r2(base * tx.cbs), ibs = r2(r2(base * tx.uf) + r2(base * tx.mun));
+      return { base, cbs, ibs, total: r2(cbs + ibs) };
+    };
+    let credito, regular;
+    if (e.regime === 'REGULAR') {
+      credito = conta(n(e.red), n(e.icms), e.incluso !== false);
+      regular = credito;
+    } else {
+      // comparação: um fornecedor do regime regular cobrando o mesmo total, sem redução
+      regular = conta(0, 0, true);
+      if (e.regime === 'SIMPLES') { const p = n(e.pSimples); credito = p > 0 ? { base: v, cbs: null, ibs: null, total: r2(v * p / 100) } : null; }
+      else credito = { base: v, cbs: 0, ibs: 0, total: 0 };
+    }
+    const pago = e.regime === 'REGULAR' && e.incluso === false ? r2(v + credito.total) : v;
+    return { valor: v, pago, credito, regular, perdido: credito ? r2(Math.max(0, regular.total - credito.total)) : null, custo: credito ? r2(pago - credito.total) : null };
+  }
   function fmtDoc(d) {
     d = (d || '').replace(/\D/g, '');
     if (d.length === 14) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`;
@@ -559,7 +714,7 @@ function criarCore(T, DOMP) {
     }
     return { doc, checks: a.checks, ex: a.ex, v, direcao };
   }
-  return { analisarXML, analisarItensPDF, simularNFe, simularNFSe, aliquotas, decodChaveNFe, fmtNCM, fmtDoc, brl, pct, dataBR, r2 };
+  return { analisarXML, analisarItensPDF, simularNFe, simularNFSe, calcularCredito, lerValor, aliquotas, decodChaveNFe, fmtNCM, fmtDoc, brl, pct, dataBR, r2 };
 }
 /*CORE-END*/
 
@@ -580,7 +735,7 @@ function criarCore(T, DOMP) {
   const segBtns = Array.from(document.querySelectorAll('[data-cbs]'));
   function syncSeg() { segBtns.forEach(b => b.setAttribute('aria-pressed', String(Math.abs(parseFloat(b.dataset.cbs) - cfg.cbs27) < 1e-6))); }
   segBtns.forEach(b => b.addEventListener('click', () => setCbs(parseFloat(b.dataset.cbs))));
-  function setCbs(v) { cfg.cbs27 = Math.round(v * 10) / 10; store.set('rtc.cbs27', String(cfg.cbs27)); syncSeg(); reanalisar(); }
+  function setCbs(v) { cfg.cbs27 = Math.round(v * 10) / 10; store.set('rtc.cbs27', String(cfg.cbs27)); syncSeg(); reanalisar(); syncCbsCalc(); renderCalc(); }
   syncSeg();
 
   // entrada de arquivos
@@ -666,7 +821,7 @@ function criarCore(T, DOMP) {
       try { navigator.clipboard.writeText(t).then(done, () => selecionar(b)); } catch (e) { selecionar(b); }
     }));
     const sl = out.querySelector('#cbs-range');
-    if (sl) sl.addEventListener('input', () => { cfg.cbs27 = parseFloat(sl.value); store.set('rtc.cbs27', String(cfg.cbs27)); syncSeg(); reanalisar(); const n = document.getElementById('cbs-range'); if (n) n.focus(); });
+    if (sl) sl.addEventListener('input', () => { cfg.cbs27 = parseFloat(sl.value); store.set('rtc.cbs27', String(cfg.cbs27)); syncSeg(); syncCbsCalc(); renderCalc(); reanalisar(); const n = document.getElementById('cbs-range'); if (n) n.focus(); });
   }
   function selecionar(b) { const s = b.previousElementSibling; if (!s) return; const rg = document.createRange(); rg.selectNodeContents(s); const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(rg); }
 
@@ -803,6 +958,153 @@ function criarCore(T, DOMP) {
       </dl></section></div>
       <div class="col"><section class="box sec"><h3><span>Conferências</span></h3>${listaChecks(r)}</section></div></div>`;
   }
+
+  // ----------------------------------------------------------- modos
+  const $ = id => document.getElementById(id);
+  const modos = Array.from(document.querySelectorAll('[data-modo]'));
+  function setModo(m) {
+    const modo = m === 'credito' ? 'credito' : 'auditar';
+    store.set('rtc.modo', modo);
+    modos.forEach(b => b.setAttribute('aria-selected', String(b.dataset.modo === modo)));
+    $('modo-auditar').hidden = modo !== 'auditar';
+    $('modo-credito').hidden = modo !== 'credito';
+  }
+  modos.forEach(b => b.addEventListener('click', () => { setModo(b.dataset.modo); if (b.dataset.modo === 'credito') $('c-valor').focus(); }));
+
+  // ----------------------------------------------------------- calculadora de crédito
+  // A lista guarda só o que foi digitado; o crédito é recalculado a cada cenário de CBS.
+  const REG = { REGULAR: 'Regime regular', SIMPLES: 'Simples Nacional', MEI: 'MEI', PF: 'Pessoa física' };
+  const calc = { regime: 'REGULAR', incl: true, red: 0 };
+  const lista = (() => {
+    try {
+      const x = JSON.parse(store.get('rtc.creditos') || '[]');
+      if (!Array.isArray(x)) return [];
+      const num = v => (typeof v === 'number' && isFinite(v) ? v : null);
+      return x.filter(e => e && num(e.valor) > 0 && REG[e.regime]).map((e, i) => ({
+        id: num(e.id) || i + 1, desc: String(e.desc || '').slice(0, 80), valor: e.valor, regime: e.regime,
+        incluso: e.incluso !== false, red: [30, 60].includes(e.red) ? e.red : 0, icms: num(e.icms) || 0, pSimples: num(e.pSimples)
+      }));
+    } catch (e) { return []; }
+  })();
+  const salvarLista = () => store.set('rtc.creditos', JSON.stringify(lista));
+
+  function entradaAtual() {
+    const reg = calc.regime;
+    return {
+      desc: $('c-desc').value.trim(), valor: core.lerValor($('c-valor').value), regime: reg,
+      incluso: reg === 'REGULAR' ? calc.incl : true, red: reg === 'REGULAR' ? calc.red : 0,
+      icms: reg === 'REGULAR' ? (core.lerValor($('c-icms').value) || 0) : 0,
+      pSimples: reg === 'SIMPLES' ? core.lerValor($('c-sn').value) : null
+    };
+  }
+  function syncCalc() {
+    document.querySelectorAll('[data-reg]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.reg === calc.regime)));
+    document.querySelectorAll('[data-incl]').forEach(b => b.setAttribute('aria-pressed', String((b.dataset.incl === '1') === calc.incl)));
+    document.querySelectorAll('[data-red]').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.red === calc.red)));
+    ['c-incl-box', 'c-red-box', 'c-icms-box'].forEach(id => { $(id).hidden = calc.regime !== 'REGULAR'; });
+    $('c-sn-box').hidden = calc.regime !== 'SIMPLES';
+  }
+  function syncCbsCalc() { $('c-cbs').value = String(cfg.cbs27); $('c-cbs-v').textContent = pct(cfg.cbs27); }
+
+  function viewCredito(e) {
+    const h = `<h3 id="h-cred"><span>Crédito desta compra</span><span class="lbl">CBS ${esc(pct(cfg.cbs27))} + IBS 0,10%</span></h3>`;
+    if (!(e.valor > 0)) return h + '<p class="note">Digite o valor da nota para ver quanto de IBS/CBS a empresa poderá abater.</p>';
+    const r = core.calcularCredito(e, cfg.cbs27), c = r.credito;
+    const txt = e.regime === 'REGULAR' ? `Fornecedor do regime regular: o IBS/CBS destacado na nota vira crédito integral${e.red ? `, com a redução de ${e.red}% que o próprio fornecedor aplica` : ''}.`
+      : e.regime === 'SIMPLES' ? (c ? `Fornecedor do Simples: o crédito é só o que ele recolhe no DAS (${pct(e.pSimples)} do valor).` : 'Fornecedor do Simples: o crédito é só o que ele recolhe no DAS, bem menor que o de um fornecedor do regime regular. Informe o percentual que vem na nota dele para calcular.')
+      : e.regime === 'MEI' ? 'O MEI recolhe IBS/CBS num valor fixo por mês: o crédito para quem compra dele é praticamente zero.'
+      : 'Pessoa física que não é contribuinte não destaca IBS/CBS: não há crédito.';
+    const max = Math.max(r.regular.total, c ? c.total : 0, 0.01);
+    return `${h}
+      <div><div class="big">${c ? brl(c.total) : 'Baixo'}</div><p class="note" style="margin-top:8px">${esc(txt)}</p></div>
+      <dl class="facts">
+        <div><dt>Crédito de CBS · abate CBS</dt><dd class="mono">${c && c.cbs != null ? brl(c.cbs) : '—'}</dd></div>
+        <div><dt>Crédito de IBS · abate IBS</dt><dd class="mono">${c && c.ibs != null ? brl(c.ibs) : '—'}</dd></div>
+        <div><dt>${e.regime === 'REGULAR' && !e.incluso ? 'Total pago (nota + IBS/CBS)' : 'Total pago'}</dt><dd class="mono">${brl(r.pago)}</dd></div>
+        <div><dt>Custo real · pago − crédito</dt><dd class="mono">${r.custo != null ? brl(r.custo) : '—'}</dd></div>
+        ${e.regime === 'REGULAR' ? `<div class="wide"><dt>Base do IBS/CBS</dt><dd class="mono">${brl(c.base)}${e.icms ? ` <span class="sub2">(sem os ${brl(Math.min(e.icms, e.valor))} de ICMS)</span>` : ''}</dd></div>` : ''}
+      </dl>
+      ${e.regime !== 'REGULAR' ? `<div class="cmp rotulos">
+        ${barra('Este', c ? c.total : 0, max, '', '')}
+        ${barra('Regular', r.regular.total, max, 'y27', `Se um fornecedor do regime regular cobrasse o mesmo total, o crédito seria ${brl(r.regular.total)} e o custo real cairia para ${brl(core.r2(r.pago - r.regular.total))}.`)}
+      </div>` : ''}`;
+  }
+
+  function viewLista() {
+    const h = `<h3 id="h-lista"><span>Compras adicionadas</span><span class="lbl">${lista.length} nota${lista.length === 1 ? '' : 's'}</span></h3>`;
+    if (!lista.length) return h + '<p class="note">Nenhuma compra na lista. Preencha ao lado e clique em "Adicionar à lista" para somar o crédito de várias notas, por exemplo as do mês.</p>';
+    const rs = lista.map(e => ({ e, r: core.calcularCredito(e, cfg.cbs27) }));
+    const t = { pago: 0, cred: 0, cbs: 0, ibs: 0, perdido: 0, semP: 0 };
+    rs.forEach(({ r }) => {
+      t.pago += r.pago; t.perdido += r.perdido || 0;
+      if (r.credito) { t.cred += r.credito.total; t.cbs += r.credito.cbs || 0; t.ibs += r.credito.ibs || 0; } else t.semP++;
+    });
+    Object.keys(t).forEach(k => { t[k] = core.r2(t[k]); });
+    const max = Math.max(t.cred + t.perdido, 0.01);
+    const linhas = rs.map(({ e, r }) => {
+      const c = r.credito;
+      const forn = REG[e.regime] + (e.regime === 'REGULAR' && e.red ? ` · −${e.red}%` : '') + (e.regime === 'SIMPLES' && c ? ` · ${pct(e.pSimples)}` : '');
+      return `<tr><td><div class="prod">${esc(e.desc || 'Compra sem descrição')}</div><div class="sub2">${esc(forn)}<span class="so-cel"> · ${brl(r.pago)}</span></div></td><td class="n opt">${brl(r.pago)}</td><td class="n opt">${c && c.cbs != null ? brl(c.cbs) : '—'}</td><td class="n opt">${c && c.ibs != null ? brl(c.ibs) : '—'}</td><td class="n"><b>${c ? brl(c.total) : 'sem %'}</b></td><td><button type="button" class="rm" data-rm="${e.id}" aria-label="Remover ${esc(e.desc || 'compra de ' + brl(r.pago))}">✕</button></td></tr>`;
+    }).join('');
+    return `${h}
+      <div><div class="lbl">Crédito total para abater</div><div class="big">${brl(t.cred)}</div><p class="note" style="margin-top:8px">CBS ${brl(t.cbs)} + IBS ${brl(t.ibs)}${t.semP ? ` · ${t.semP} compra${t.semP === 1 ? '' : 's'} do Simples sem percentual fic${t.semP === 1 ? 'ou' : 'aram'} fora da soma` : ''}.</p></div>
+      ${t.perdido > 0 ? `<div class="cmp rotulos">
+        ${barra('Você', t.cred, max, '', '')}
+        ${barra('Regular', core.r2(t.cred + t.perdido), max, 'y27', `Comprando de fornecedores do Simples, MEI ou pessoa física, a empresa deixa de aproveitar ${brl(t.perdido)} de crédito. Na hora de comparar orçamentos, compare o custo real (preço − crédito): o mais barato pode sair mais caro.`)}
+      </div>` : ''}
+      <div class="tw"><table class="lista"><thead><tr><th>Compra · fornecedor</th><th class="opt">Total pago</th><th class="opt">CBS</th><th class="opt">IBS</th><th>Crédito</th><th><span class="sr">Remover</span></th></tr></thead>
+        <tbody>${linhas}</tbody>
+        <tfoot><tr><td>Total<span class="so-cel sub2"> · ${brl(t.pago)}</span></td><td class="n opt">${brl(t.pago)}</td><td class="n opt">${brl(t.cbs)}</td><td class="n opt">${brl(t.ibs)}</td><td class="n">${brl(t.cred)}</td><td></td></tr></tfoot>
+      </table></div>
+      <div class="acoes"><button type="button" id="c-limpar-lista">Limpar lista</button></div>
+      <p class="note">A lista fica salva só neste navegador. Nada é enviado para fora.</p>`;
+  }
+
+  function renderCalc() {
+    const e = entradaAtual();
+    $('c-add').disabled = !(e.valor > 0);
+    const rm = e.valor > 0 ? core.calcularCredito(e, cfg.cbs27).credito : undefined;
+    $('c-mini').textContent = rm === undefined ? '' : `Crédito: ${rm ? brl(rm.total) : 'baixo'}`;
+    $('c-res').innerHTML = viewCredito(e);
+    const el = $('c-lista');
+    el.innerHTML = viewLista();
+    el.querySelectorAll('[data-rm]').forEach(b => b.addEventListener('click', () => {
+      const i = lista.findIndex(x => String(x.id) === b.dataset.rm);
+      if (i >= 0) { lista.splice(i, 1); salvarLista(); }
+      renderCalc();
+      const prox = $('c-lista').querySelector('[data-rm]'); (prox || $('c-valor')).focus();
+    }));
+    const lim = $('c-limpar-lista');
+    if (lim) lim.addEventListener('click', () => {
+      // dois cliques: o primeiro pede confirmação (confirm() pode estar bloqueado em iframes)
+      if (lim.dataset.armado !== '1') { lim.dataset.armado = '1'; lim.textContent = 'Clique de novo para apagar tudo'; return; }
+      lista.splice(0); salvarLista(); renderCalc(); $('c-valor').focus();
+    });
+  }
+  function adicionarCompra() {
+    const e = entradaAtual();
+    if (!(e.valor > 0)) { $('c-valor').focus(); return; }
+    e.id = lista.reduce((m, x) => Math.max(m, +x.id || 0), 0) + 1;
+    lista.push(e); salvarLista();
+    ['c-valor', 'c-icms', 'c-sn', 'c-desc'].forEach(id => { $(id).value = ''; });
+    renderCalc(); $('c-valor').focus();
+  }
+
+  document.querySelectorAll('[data-reg]').forEach(b => b.addEventListener('click', () => { calc.regime = b.dataset.reg; syncCalc(); renderCalc(); }));
+  document.querySelectorAll('[data-incl]').forEach(b => b.addEventListener('click', () => { calc.incl = b.dataset.incl === '1'; syncCalc(); renderCalc(); }));
+  document.querySelectorAll('[data-red]').forEach(b => b.addEventListener('click', () => { calc.red = +b.dataset.red; syncCalc(); renderCalc(); }));
+  ['c-valor', 'c-icms', 'c-sn', 'c-desc'].forEach(id => {
+    $(id).addEventListener('input', renderCalc);
+    $(id).addEventListener('keydown', ev => { if (ev.key === 'Enter') { ev.preventDefault(); adicionarCompra(); } });
+  });
+  $('c-add').addEventListener('click', adicionarCompra);
+  $('c-limpar').addEventListener('click', () => {
+    ['c-valor', 'c-icms', 'c-sn', 'c-desc'].forEach(id => { $(id).value = ''; });
+    calc.incl = true; calc.red = 0; syncCalc(); renderCalc(); $('c-valor').focus();
+  });
+  $('c-cbs').addEventListener('input', () => setCbs(parseFloat($('c-cbs').value)));
+  syncCalc(); syncCbsCalc(); renderCalc();
+  setModo(store.get('rtc.modo'));
 
   // abre com um exemplo carregado
   adicionarXML('EXEMPLO · nfe_2027_com_erros.xml', document.getElementById('ex-erros').textContent, true);

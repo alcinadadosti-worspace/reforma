@@ -33,7 +33,7 @@ const pagina = `<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Confere IBS e CBS de NF-e, NFC-e e NFS-e (XML ou PDF) e simula a operação em 2027. Tudo roda no navegador.">
+<meta name="description" content="Confere IBS e CBS de NF-e, NFC-e e NFS-e (XML ou PDF), simula a operação em 2027 e calcula o crédito das compras. Tudo roda no navegador.">
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='3' width='26' height='26' fill='%23fff' stroke='%23000' stroke-width='4'/%3E%3Cpath d='M9 16.5l5 5 9-11' fill='none' stroke='%23000' stroke-width='4'/%3E%3C/svg%3E">
 ${html.slice(0, corte)}
