@@ -8,7 +8,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { core, raiz, criarVerificador } from './nucleo.mjs';
-import { mesFicticio, zipComDeflate } from './fixtures.mjs';
+import { mesFicticio, zipComDeflate, nfe } from './fixtures.mjs';
 import { servir, abrirNavegador, novaPagina, espera } from './servidor.mjs';
 
 const { ok, igual, fim } = criarVerificador();
@@ -77,6 +77,31 @@ try {
   const xAud = await baixado(() => page.click('#a-xlsx'), /^auditoria-.*\.xlsx$/);
   igual('Excel da auditoria', xAud && (await lerXlsx(xAud)).abas, ['Resumo', 'Conferências', 'Itens']);
 
+  // XML em ISO-8859-1, XML cortado (com nome longo, como os de evento) e ZIP solto no auditor
+  const latin1 = join(tmp, 'nota_latin1.xml');
+  writeFileSync(latin1, Buffer.from(nfe({ numero: 52 }).texto.replace(/encoding=['"]UTF-8['"]/, 'encoding="ISO-8859-1"').replace(/<xProd>[^<]*<\/xProd>/, '<xProd>AÇÚCAR CRISTAL ÉPOCA</xProd>'), 'latin1'));
+  const cortado = join(tmp, '2'.repeat(44) + '-procNFe-cortado-no-meio.xml');
+  writeFileSync(cortado, nfe({ numero: 53 }).texto.slice(0, 1500));
+  const nTabs = async () => (await page.$$('#tabs .tab')).length;
+  const antes = await nTabs();
+  await (await page.$('#file')).uploadFile(latin1);
+  await page.waitForFunction(n => document.querySelectorAll('#tabs .tab').length > n, {}, antes);
+  ok('XML em ISO-8859-1 com acentos certos', (await texto(page, '#out')).includes('AÇÚCAR CRISTAL ÉPOCA'));
+  await (await page.$('#file')).uploadFile(cortado);
+  await page.waitForFunction(n => document.querySelectorAll('#tabs .tab').length > n, {}, antes + 1);
+  ok('XML cortado: erro de leitura, não "Conforme"', /XML inválido ou incompleto/.test(await texto(page, '#out')), await texto(page, '#out'));
+  await page.setViewport({ width: 375, height: 800 });
+  await espera(300);
+  const larguraErro = await page.evaluate(() => document.documentElement.scrollWidth);
+  ok('nome de arquivo longo no celular (375px) sem rolagem lateral', larguraErro <= 375, larguraErro);
+  await page.setViewport({ width: 1280, height: 900 });
+  await (await page.$('#file')).uploadFile(zip);
+  await page.waitForFunction(n => document.querySelectorAll('#tabs .tab').length > n, {}, antes + 2);
+  ok('ZIP no auditor: orienta a usar o fechamento', /é um arquivo ZIP/.test(await texto(page, '#out')));
+  await page.focus('#tabs .tab');
+  await page.keyboard.press('Enter');
+  ok('teclado: o foco continua na aba depois de escolher', await page.evaluate(() => /^tab-/.test(document.activeElement.id)));
+
   console.log('--- calculadora de crédito');
   await page.click('#m-credito');
   await page.type('#c-valor', '1000');
@@ -96,6 +121,20 @@ try {
 
   console.log('--- fechamento do mês');
   await page.click('#m-fechamento');
+  // qual seletor de arquivos abre: o do botão "Escolher uma pasta" tem de ser o de pasta (#f-pasta)
+  const sessao = await page.createCDPSession();
+  await sessao.send('Page.enable');
+  await sessao.send('DOM.enable');
+  await sessao.send('Page.setInterceptFileChooserDialog', { enabled: true });
+  const seletores = [];
+  sessao.on('Page.fileChooserOpened', ev => seletores.push(ev.backendNodeId));
+  await page.click('#f-escolher-pasta');
+  await espera(800);
+  const idsSeletores = [];
+  for (const backendNodeId of seletores) { const { node } = await sessao.send('DOM.describeNode', { backendNodeId }); const at = node.attributes || []; idsSeletores.push(at[at.indexOf('id') + 1]); }
+  igual('"Escolher uma pasta" abre o seletor de pasta', idsSeletores, ['f-pasta']);
+  await sessao.send('Page.setInterceptFileChooserDialog', { enabled: false });
+  await sessao.detach();
   await (await page.$('#f-file')).uploadFile(...caminhos);
   await page.waitForSelector('[data-empresa]', { timeout: 60000 });
   igual('sem CNPJ no topo, sugere o da empresa primeiro', await page.$$eval('[data-empresa]', bs => bs[0].dataset.empresa), '11111111');
@@ -111,7 +150,9 @@ try {
   ok('informa o arquivo repetido e o ignorado', /1 arquivo repetido/.test(corpo) && /1 arquivo ignorado/.test(corpo));
   await page.click('#cbs-b');
   igual('cenário de 10,2% recalcula (saldo credor de R$ 109,17)', await texto(page, '#f-out .big'), 'R$ 109,17');
+  ok('em 10,2%, a compra de 2027 com CBS de 11,2% ganha o alerta do cenário', /diferente do cenário de 10,20%/.test(await texto(page, '#f-out')));
   await page.click('#cbs-a');
+  ok('de volta a 11,2%, o alerta sai', !/diferente do cenário/.test(await texto(page, '#f-out')));
   await page.select('#f-mes', '2026-11');
   igual('filtro de novembro', await texto(page, '#h-cont .lbl'), '10 notas no mês');
   await page.select('#f-mes', '');

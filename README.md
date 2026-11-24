@@ -15,16 +15,26 @@ Confere o IBS e a CBS de NF-e, NFC-e e NFS-e (XML ou PDF) contra as tabelas ofic
 
   **Regras da apuração:**
   - Venda gera débito.
-  - Compra gera crédito: integral de fornecedor do regime regular, zero de MEI e "não estimado" de fornecedor do Simples, porque o crédito é só o que ele recolhe no DAS.
+  - Compra gera crédito: integral de fornecedor do regime regular, zero de MEI e "não estimado" de fornecedor do Simples, porque o crédito é só o que ele recolhe no DAS. Importação (nota de entrada com CFOP 3xxx) também gera crédito.
   - Devoluções (`finNFe` 4) abatem o débito ou o crédito.
-  - Ficam fora: transferências entre filiais, notas canceladas (eventos 110111 e 110112 soltos junto) e denegadas.
+  - Nota de crédito (`finNFe` 5) emitida pela empresa abate o débito; recebida de fornecedor, abate o crédito. Nota de débito (`finNFe` 6) faz o contrário. Vale também a emitida para a própria empresa (estorno ou apropriação de crédito).
+  - Ficam fora:
+    - transferências entre filiais;
+    - notas canceladas (eventos 110111 e 110112 da NF-e; e101101, e105102, e105104 e e305101 da NFS-e, soltos junto);
+    - notas denegadas;
+    - notas de homologação (ambiente de teste, sem valor fiscal).
   - Nota repetida (mesma chave) conta uma vez.
-  - Notas de 2026 são recalculadas com as alíquotas de 2027. De 2027 em diante, vale o valor destacado na nota.
+  - Não entram e aparecem como ignorados:
+    - lote de envio com várias NF-e no mesmo arquivo: solte o XML autorizado de cada uma;
+    - DPS solta: o que vale é a NFS-e gerada a partir dela.
+  - Notas de 2026 são recalculadas com as alíquotas de 2027. De 2027 em diante, vale o valor destacado na nota. Item sem IBS/CBS destacado é simulado, com tributação integral, e a nota aparece entre as com problema.
 
-  O CNPJ do topo separa vendas de compras. Se estiver em branco, o app sugere a empresa pelos CNPJs que mais aparecem.
+  O CNPJ do topo separa vendas de compras. Se estiver em branco, o app sugere a empresa pelos CNPJs que mais aparecem. O CNPJ alfanumérico, emitido desde julho de 2026, também é aceito.
+
+  O veredito de cada nota acompanha o cenário da CBS escolhido: trocar o cenário refaz o alerta "CBS diferente do cenário" sem precisar soltar as notas de novo.
 - **Calculadora de crédito:** digite o valor de uma nota de compra e o regime do fornecedor (regular, Simples, MEI ou pessoa física) e veja quanto de CBS e IBS a empresa poderá abater a partir de 2027. Para o regime regular, dá para informar se o imposto está dentro do valor, se há redução (30% ou 60%) e o ICMS da nota. A lista soma várias notas e mostra o crédito que se perde com fornecedores do Simples, MEI e pessoa física.
 
-**Relatórios:** nas três ferramentas, "Exportar Excel" baixa um `.xlsx` com várias abas (valores em R$, datas, cabeçalho fixo, filtro e CPF mascarado). "Salvar PDF" abre a impressão já formatada (uma coluna, sem botões, com data e cenário da CBS no topo); escolha "Salvar como PDF" no destino.
+**Relatórios:** nas três ferramentas, "Exportar Excel" baixa um `.xlsx` compactado com várias abas (valores em R$, datas, cabeçalho fixo, filtro e CPF mascarado). O fechamento de um mês com 12 mil NFC-e sai com cerca de 3 MB. "Salvar PDF" abre a impressão já formatada (uma coluna, sem botões, com data e cenário da CBS no topo); escolha "Salvar como PDF" no destino.
 
 ## Estrutura
 
@@ -59,7 +69,7 @@ npm test
 São três suítes, e todas usam notas fictícias:
 - `testes/teste_nucleo.mjs`: a lógica (calculadora, auditoria, fechamento de um mês fictício com os valores conferidos à mão, ZIP e Excel).
 - `testes/teste_navegador.mjs`: as três ferramentas no Chrome ou Edge sem janela, servidas com os cabeçalhos do `render.yaml`. Confere os Excel baixados, a impressão, a tela de celular e que não há violação da CSP nem erro de console.
-- `testes/teste_atualizacao.mjs`: simula deploys com uma aba aberta e leva cerca de 2 minutos.
+- `testes/teste_atualizacao.mjs`: simula deploys com uma aba aberta e leva cerca de 3 minutos. Cobre três casos: trabalho em andamento, fechamento aberto (com o botão "Atualizar agora") e a internet caindo antes da recarga.
 
 O navegador é achado sozinho (Edge ou Chrome). Se precisar, informe o caminho na variável `NAVEGADOR`. Com `CAPTURAS=<pasta>`, o teste de navegador grava capturas de tela e o PDF do fechamento. Com `SITE=<url>`, ele testa o site publicado em vez da pasta `public/`, por exemplo `SITE=https://seu-site.onrender.com/ node testes/teste_navegador.mjs`.
 
@@ -103,8 +113,13 @@ Depois de um deploy, ninguém precisa dar F5. Quem abrir o site recebe a versão
 
 1. A cada build, o `build.mjs` calcula uma assinatura do conteúdo da página e a grava em `public/versao.svg`, como largura x altura da imagem. A mesma assinatura vai dentro da página.
 2. A página confere o `versao.svg` 10 s depois de abrir, a cada 5 minutos e sempre que a pessoa volta para a aba. Como é uma imagem do próprio site, isso cabe na CSP (`img-src 'self'`): o `connect-src` continua `'none'`, e não é preciso mudar nenhum cabeçalho no Render.
-3. Se a assinatura mudou, a página espera a pessoa ficar 30 s sem mexer, ou sair da aba. Então guarda as notas abertas e o que foi digitado na `sessionStorage` daquela aba, recarrega e restaura tudo. Aparece o aviso "App atualizado para a versão mais nova".
-4. Se não der para guardar, aparece um aviso com o botão "Atualizar agora". Isso acontece com um fechamento do mês aberto (grande demais para a `sessionStorage`) ou com PDFs muito grandes.
+3. Se a assinatura mudou, a página espera a pessoa ficar 30 s sem mexer, ou sair da aba. Arrastar e soltar arquivos conta como uso. A página também espera:
+   - o seletor de arquivos do sistema fechar;
+   - os arquivos soltos terminarem de ser lidos;
+   - a internet voltar. Antes de recarregar, ela confere de novo o `versao.svg`: sem conexão, recarregar trocaria o app pela página de erro do navegador.
+
+   Então guarda as notas abertas e o que foi digitado na `sessionStorage` daquela aba, recarrega e restaura tudo. Aparece o aviso "App atualizado para a versão mais nova".
+4. Se não der para guardar, aparece um aviso com os botões "Atualizar agora" e "Depois". Isso acontece com um fechamento do mês aberto (grande demais para a `sessionStorage`) ou com PDFs muito grandes. "Atualizar agora" guarda as notas do auditor e a calculadora antes de recarregar; só o fechamento precisa ser refeito.
 
 Republicar sem mudar nada gera a mesma assinatura, e ninguém recarrega. O mecanismo só funciona no site publicado (http/https). Abrindo o arquivo local ou no Artifact do Claude, ele fica desligado.
 
@@ -150,7 +165,7 @@ O tema é sempre o claro, em papel de jornal, mesmo com o navegador no modo escu
 
 - **DANFE em PDF:** a conferência é parcial, só chave e valor total. O DANFE não traz CST nem cClassTrib por item; para auditar item a item, ou para a nota entrar no fechamento, use o XML.
 - **Diferimento e monofasia:** não são recalculados.
-- **NFS-e:** a simulação usa o valor do serviço como base (o ISS não é descontado).
+- **NFS-e:** a base da simulação é o valor do serviço menos o desconto incondicionado e o ISSQN, como na calculadora da Receita. Na NFS-e de locação de imóvel (subitem 99.03), as regras próprias não são aplicadas.
 - **Alíquota da CBS de 2027:** ainda não foi fixada pelo Senado. A página permite escolher o cenário: 11,2% pelo cálculo do TCU, ou outro valor no controle deslizante.
 - **Calculadora de crédito e fechamento:** são estimativas com as alíquotas de 2027 e 2028. O crédito real é o IBS/CBS destacado na nota do fornecedor. Para o Simples, a calculadora só calcula o crédito se você informar o percentual que vem na nota dele.
 - **Natureza da ferramenta:** é uma ferramenta de apoio e não substitui a contabilidade.

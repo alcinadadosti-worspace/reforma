@@ -150,7 +150,7 @@ tr.r-info td:first-child { box-shadow: inset 6px 0 0 var(--neutral); }
 .prod { font-weight: 600; }
 .sub2 { color: var(--muted); font-size: 12px; }
 .empty { padding: 24px; text-align: center; color: var(--muted); }
-.err-msg { padding: 14px 16px; border: var(--bw) solid var(--line); background: var(--bad); color: var(--bad-ink); font-weight: 600; }
+.err-msg { padding: 14px 16px; border: var(--bw) solid var(--line); background: var(--bad); color: var(--bad-ink); font-weight: 600; overflow-wrap: anywhere; }
 .example-flag { font: 800 11px var(--font-mono); text-transform: uppercase; letter-spacing: .08em; background: var(--ink); color: var(--surface); padding: 3px 8px; display: inline-block; }
 [hidden] { display: none !important; }
 
@@ -175,11 +175,13 @@ table.lista { min-width: 600px; }
 table.lista tfoot td { font-weight: 800; border-top: var(--bw) solid var(--line); }
 button.rm { padding: 2px 8px; font-size: 12px; box-shadow: 2px 2px 0 var(--line); }
 .avisos { margin: 0; padding-left: 18px; display: grid; gap: 8px; font-size: 13px; color: var(--muted); }
+.avisos li, .probs li, .t1 { overflow-wrap: anywhere; min-width: 0; }
 .avisos b { color: var(--ink); }
 
 /* aviso de versão nova */
 .aviso-versao { position: fixed; z-index: 20; left: 50%; bottom: 18px; transform: translateX(-50%); width: min(560px, calc(100% - 32px)); display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; padding: 12px 16px; background: var(--ink); color: var(--surface); border: var(--bw) solid var(--line); box-shadow: var(--sh) var(--sh) 0 var(--accent); font-weight: 700; }
 .aviso-versao button { box-shadow: 3px 3px 0 var(--accent); padding: 6px 12px; }
+.aviso-versao .acoes-aviso { display: flex; gap: 10px; }
 
 /* fechamento do mês */
 .prog { height: 24px; border: var(--bw) solid var(--line); background: var(--tint); position: relative; overflow: hidden; }
@@ -251,7 +253,7 @@ table.compacta tfoot td { font-weight: 800; border-top: var(--bw) solid var(--li
     <div class="ctrls">
       <div class="ctrl cnpj">
         <label class="lbl" for="cnpj">CNPJ da empresa (8 primeiros dígitos)</label>
-        <input id="cnpj" type="text" inputmode="numeric" placeholder="00.000.000" autocomplete="off">
+        <input id="cnpj" type="text" placeholder="00.000.000" autocomplete="off" autocapitalize="characters" spellcheck="false">
       </div>
       <div class="ctrl">
         <span class="lbl" id="cbs-lbl">CBS 2027 na nota</span>
@@ -277,9 +279,10 @@ table.compacta tfoot td { font-weight: 800; border-top: var(--bw) solid var(--li
         <p class="hint">Vendas e compras juntas: XML de NF-e, NFC-e e NFS-e, arquivos ZIP ou a pasta inteira. Tudo é lido só neste navegador; nada é enviado para fora.</p>
       </div>
       <div class="ext" aria-hidden="true"><span class="tag">XML</span><span class="tag">ZIP</span><span class="tag">Pasta</span><span class="tag">PDF NFS-e</span></div>
-      <input id="f-file" type="file" accept=".xml,.zip,.pdf,application/xml,text/xml,application/zip,application/x-zip-compressed,application/pdf" multiple hidden>
-      <input id="f-pasta" type="file" webkitdirectory multiple hidden>
     </section>
+    <!-- fora da área de soltar: o clique num input dentro dela subia até ela e abria o seletor errado -->
+    <input id="f-file" type="file" accept=".xml,.zip,.pdf,application/xml,text/xml,application/zip,application/x-zip-compressed,application/pdf" multiple hidden>
+    <input id="f-pasta" type="file" webkitdirectory multiple hidden>
     <div class="exrow">
       <button type="button" id="f-escolher-pasta">Escolher uma pasta</button>
       <span class="note">O CNPJ da empresa (no topo) separa vendas de compras. Se estiver em branco, o app sugere pelo que aparece nas notas.</span>
@@ -294,8 +297,8 @@ table.compacta tfoot td { font-weight: 800; border-top: var(--bw) solid var(--li
         <p class="hint">XML ou PDF. Pode soltar vários de uma vez, ou clicar para escolher. Os arquivos são lidos só neste navegador; nada é enviado para fora.</p>
       </div>
       <div class="ext" aria-hidden="true"><span class="tag">XML NF-e / NFC-e</span><span class="tag">XML NFS-e</span><span class="tag">PDF DANFSe</span><span class="tag">PDF DANFE</span></div>
-      <input id="file" type="file" accept=".xml,.pdf,application/xml,text/xml,application/pdf" multiple hidden>
     </section>
+    <input id="file" type="file" accept=".xml,.pdf,application/xml,text/xml,application/pdf" multiple hidden>
 
     <div class="exrow">
       <span class="lbl">Notas fictícias de exemplo</span>
@@ -397,7 +400,7 @@ table.compacta tfoot td { font-weight: 800; border-top: var(--bw) solid var(--li
 /*CORE-START*/
 function criarCore(T, DOMP) {
   const TOL = 0.011;
-  const r2 = x => Math.round((x + (x >= 0 ? 1e-9 : -1e-9)) * 100) / 100;
+  const r2 = x => Math.round((x + (x >= 0 ? 1e-9 : -1e-9)) * 100) / 100 || 0; // || 0: sem "−R$ 0,00"
   const r4 = x => Math.round((x + 1e-12) * 10000) / 10000;
   const n = v => { const x = parseFloat(v); return isFinite(x) ? x : 0; };
   const all = (el, name) => el ? Array.from(el.getElementsByTagNameNS('*', name)) : [];
@@ -409,6 +412,8 @@ function criarCore(T, DOMP) {
   const brl = v => (v == null ? '—' : v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }));
   const pct = v => v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 4 }) + '%';
   const fmtNCM = s => s && s.length === 8 ? `${s.slice(0, 4)}.${s.slice(4, 6)}.${s.slice(6)}` : (s || '—');
+  // CNPJ/CPF só com letras maiúsculas e números (o CNPJ alfanumérico tem letras)
+  const docLimpo = d => String(d || '').toUpperCase().replace(/[^0-9A-Z]/g, '');
   const RANK = { ok: 0, info: 1, warn: 2, err: 3 };
   const TRANSF = new Set(['5151', '5152', '5155', '5156', '5408', '5409', '5552', '5557', '6151', '6152', '6155', '6156', '6408', '6409', '6552', '6557']);
   const UF = { 11: 'RO', 12: 'AC', 13: 'AM', 14: 'RR', 15: 'PA', 16: 'AP', 17: 'TO', 21: 'MA', 22: 'PI', 23: 'CE', 24: 'RN', 25: 'PB', 26: 'PE', 27: 'AL', 28: 'SE', 29: 'BA', 31: 'MG', 32: 'ES', 33: 'RJ', 35: 'SP', 41: 'PR', 42: 'SC', 43: 'RS', 50: 'MS', 51: 'MT', 52: 'GO', 53: 'DF' };
@@ -437,8 +442,14 @@ function criarCore(T, DOMP) {
     if (!cl.ncm.length || !ncm) return true;
     return cl.ncm.some(p => ncm.startsWith(p)) && !cl.x.some(p => ncm.startsWith(p));
   }
+  // Base unificada do item, com os componentes da calculadora da RFB (enum ElementoBaseCalculo):
+  // + vProd, vFrete, vSeg, vOutro, vII (só NF-e) e vIS (de 2027 em diante);
+  // − vDesc; ICMS, FCP, ICMS monofásico, DIFAL (vICMSUFDest e vFCPUFDest, só NF-e) e ISSQN até 2032; PIS/Cofins só em 2026.
   function baseItem(it, ano) {
-    return r2(it.vProd - it.vDesc + it.vFrete + it.vSeg + it.vOutro - it.vICMS - it.vFCP - (ano <= 2026 ? it.vPIS + it.vCOFINS : 0));
+    const nfe = it.mod !== '65', z = v => v || 0;
+    const soma = it.vProd + it.vFrete + it.vSeg + it.vOutro + (nfe ? z(it.vII) : 0) + (ano >= 2027 ? z(it.vIS) : 0);
+    const icmsIss = ano <= 2032 ? it.vICMS + it.vFCP + z(it.vICMSMono) + (nfe ? z(it.vICMSUFDest) + z(it.vFCPUFDest) : 0) + z(it.vISSQN) : 0;
+    return r2(soma - it.vDesc - icmsIss - (ano <= 2026 ? it.vPIS + it.vCOFINS : 0));
   }
 
   // ---------------------------------------------------------------- NF-e / NFC-e
@@ -447,8 +458,10 @@ function criarCore(T, DOMP) {
     const ide = child(inf, 'ide'), emit = child(inf, 'emit'), dest = child(inf, 'dest');
     const prot = first(doc, 'infProt');
     const dh = ctxt(ide, 'dhEmi') || ctxt(ide, 'dEmi') || '';
+    // data AAAA-MM-DD; se vier fora do padrão (ex.: DD/MM/AAAA), tenta ler e avisa; sem data, usa o ano corrente
+    const data = dataISO(dh), dataOk = /^\d{4}-\d{2}-\d{2}/.test(dh);
     const nf = {
-      tipo: 'NFE', mod: ctxt(ide, 'mod'), serie: ctxt(ide, 'serie'), numero: ctxt(ide, 'nNF'), dhEmi: dh, ano: +dh.slice(0, 4),
+      tipo: 'NFE', mod: ctxt(ide, 'mod'), serie: ctxt(ide, 'serie'), numero: ctxt(ide, 'nNF'), dhEmi: dh, data, dataOk, ano: +data.slice(0, 4) || new Date().getFullYear(),
       natOp: ctxt(ide, 'natOp'), tpNF: ctxt(ide, 'tpNF'), finNFe: ctxt(ide, 'finNFe'), tpAmb: ctxt(ide, 'tpAmb'),
       emit: { doc: ctxt(emit, 'CNPJ') || ctxt(emit, 'CPF'), nome: ctxt(emit, 'xNome'), mun: txt(child(emit, 'enderEmit'), 'xMun'), uf: txt(child(emit, 'enderEmit'), 'UF'), crt: ctxt(emit, 'CRT') },
       dest: dest ? { doc: ctxt(dest, 'CNPJ') || ctxt(dest, 'CPF') || ctxt(dest, 'idEstrangeiro'), cpf: !!child(dest, 'CPF'), nome: ctxt(dest, 'xNome'), mun: txt(child(dest, 'enderDest'), 'xMun'), uf: txt(child(dest, 'enderDest'), 'UF') } : null,
@@ -460,17 +473,22 @@ function criarCore(T, DOMP) {
       const prod = child(det, 'prod'), imp = child(det, 'imposto');
       const icms = child(imp, 'ICMS'); const icmsG = kids(icms)[0] || null;
       const pis = child(imp, 'PIS'), cof = child(imp, 'COFINS'); const ib = child(imp, 'IBSCBS');
+      const difal = child(imp, 'ICMSUFDest');
       let ibs = null;
       if (ib) {
-        const g = child(ib, 'gIBSCBS');
+        const g = child(ib, 'gIBSCBS'), mono = child(ib, 'gIBSCBSMono');
         const grp = (gn, pn, vn) => { const e = child(g, gn); if (!e) return null; const red = child(e, 'gRed'); return { p: n(ctxt(e, pn)), v: n(ctxt(e, vn)), red: red ? n(ctxt(red, 'pRedAliq')) : null, ef: red ? n(ctxt(red, 'pAliqEfet')) : null, dif: !!child(e, 'gDif') }; };
-        ibs = { cst: ctxt(ib, 'CST'), cc: ctxt(ib, 'cClassTrib'), g: !!g, mono: !!child(ib, 'gIBSCBSMono'), vBC: g ? n(ctxt(g, 'vBC')) : null,
-          uf: g ? grp('gIBSUF', 'pIBSUF', 'vIBSUF') : null, mun: g ? grp('gIBSMun', 'pIBSMun', 'vIBSMun') : null, cbs: g ? grp('gCBS', 'pCBS', 'vCBS') : null, vIBS: g ? n(ctxt(g, 'vIBS')) : null };
+        ibs = { cst: ctxt(ib, 'CST'), cc: ctxt(ib, 'cClassTrib'), g: !!g, mono: !!mono, vBC: g ? n(ctxt(g, 'vBC')) : null,
+          uf: g ? grp('gIBSUF', 'pIBSUF', 'vIBSUF') : null, mun: g ? grp('gIBSMun', 'pIBSMun', 'vIBSMun') : null, cbs: g ? grp('gCBS', 'pCBS', 'vCBS') : null, vIBS: g ? n(ctxt(g, 'vIBS')) : null,
+          vMono: mono ? { cbs: n(ctxt(mono, 'vTotCBSMonoItem')), ibs: n(ctxt(mono, 'vTotIBSMonoItem')) } : null };
       }
       nf.itens.push({
-        n: det.getAttribute('nItem'), cProd: ctxt(prod, 'cProd'), xProd: ctxt(prod, 'xProd'), ncm: ctxt(prod, 'NCM'), cfop: ctxt(prod, 'CFOP'),
+        n: det.getAttribute('nItem'), mod: nf.mod, cProd: ctxt(prod, 'cProd'), xProd: ctxt(prod, 'xProd'), ncm: ctxt(prod, 'NCM'), cfop: ctxt(prod, 'CFOP'),
         q: n(ctxt(prod, 'qCom')), vProd: n(ctxt(prod, 'vProd')), vDesc: n(ctxt(prod, 'vDesc')), vFrete: n(ctxt(prod, 'vFrete')), vSeg: n(ctxt(prod, 'vSeg')), vOutro: n(ctxt(prod, 'vOutro')),
-        vICMS: icmsG ? n(ctxt(icmsG, 'vICMS')) : 0, vFCP: icmsG ? n(ctxt(icmsG, 'vFCP')) : 0, icmsCST: icmsG ? (ctxt(icmsG, 'CST') || ctxt(icmsG, 'CSOSN')) : null,
+        vICMS: icmsG ? n(ctxt(icmsG, 'vICMS')) : 0, vFCP: icmsG ? n(ctxt(icmsG, 'vFCP')) : 0, vICMSMono: icmsG ? n(ctxt(icmsG, 'vICMSMono')) : 0,
+        icmsCST: icmsG ? (ctxt(icmsG, 'CST') || ctxt(icmsG, 'CSOSN')) : null,
+        vICMSUFDest: n(ctxt(difal, 'vICMSUFDest')), vFCPUFDest: n(ctxt(difal, 'vFCPUFDest')),
+        vII: n(ctxt(child(imp, 'II'), 'vII')), vIS: n(ctxt(child(imp, 'IS'), 'vIS')), vISSQN: n(ctxt(child(imp, 'ISSQN'), 'vISSQN')),
         vPIS: n(txt(pis, 'vPIS')), vCOFINS: n(txt(cof, 'vCOFINS')), pisCST: txt(pis, 'CST'), ibs
       });
     }
@@ -483,29 +501,34 @@ function criarCore(T, DOMP) {
     return nf;
   }
 
+  const tituloCenario = (pNota, pCenario) => `CBS de ${pct(pNota)}, diferente do cenário de ${pct(pCenario)}`;
+  const DET_CENARIO = 'A alíquota da CBS de 2027 ainda não foi fixada pelo Senado. Confira quando sair a resolução.';
   function exigencia(nf) {
     if (!['55', '65'].includes(nf.mod)) return { exige: false, desde: null };
     const simples = ['1', '2', '4'].includes(nf.emit.crt);
-    const desde = simples ? '2027-01-01' : '2026-08-03';
-    return { exige: nf.dhEmi.slice(0, 10) >= desde, desde, simples };
+    // Ato Conjunto RFB/CGIBS 4/2026, com a redação do 7/2026: regime regular desde 03/08/2026; Simples em 01/03/2027
+    const desde = simples ? '2027-03-01' : '2026-08-03';
+    return { exige: (nf.data || '') >= desde, desde, simples };
   }
 
   function auditarNFe(nf, cfg) {
     const checks = [];
-    const add = (sev, titulo, det, item) => checks.push({ sev, titulo, det, item });
+    // cenario: conferência que depende do cenário da CBS de 2027 (o fechamento a refaz quando o cenário muda)
+    const add = (sev, titulo, det, item, cenario) => checks.push(cenario != null ? { sev, titulo, det, item, cenario } : { sev, titulo, det, item });
     const ex = exigencia(nf); const ano = nf.ano; const aliq = aliquotas(ano, cfg.cbs27);
+    if (!nf.dataOk) add('warn', 'Data de emissão fora do padrão', `"${nf.dhEmi || '(vazia)'}" não está no formato AAAA-MM-DD do leiaute; o ano usado nas conferências pode estar errado.`);
     for (const it of nf.itens) {
-      it.status = 'ok'; it.msgs = [];
-      const flag = (sev, titulo, det) => { it.msgs.push({ sev, titulo, det }); if (RANK[sev] > RANK[it.status]) it.status = sev; };
+      it.status = 'ok'; it.msgs = []; it.cbsCenario = null;
+      const flag = (sev, titulo, det, cenario) => { it.msgs.push({ sev, titulo, det, cenario }); if (RANK[sev] > RANK[it.status]) it.status = sev; };
       it.baseEsp = baseItem(it, ano);
       const b = it.ibs;
       if (!b) {
-        if (ex.exige) flag('err', 'Item sem o grupo IBS/CBS', `Obrigatório para esta nota desde ${ex.desde.split('-').reverse().join('/')} (Ato Conjunto RFB/CGIBS 4/2026). A Sefaz ainda não rejeita, mas a obrigação vale.`);
+        if (ex.exige) flag('err', 'Item sem o grupo IBS/CBS', `Obrigatório para esta nota desde ${ex.desde.split('-').reverse().join('/')} (Ato Conjunto RFB/CGIBS 4/2026, com a redação do 7/2026). A Sefaz ainda não rejeita, mas a obrigação vale.`);
         else flag('info', 'Sem IBS/CBS', ex.desde ? `Não era exigido na data de emissão (exigido a partir de ${ex.desde.split('-').reverse().join('/')}).` : 'Documento fora do escopo desta conferência.');
         continue;
       }
-      const cl = T.cc[b.cc];
-      if (!cl) { flag('err', `cClassTrib ${b.cc} não existe na tabela oficial`, 'Confira o cadastro tributário do produto.'); continue; }
+      const cl = b.cc ? T.cc[b.cc] : null;
+      if (!cl) { flag('err', b.cc ? `cClassTrib ${b.cc} não existe na tabela oficial` : 'Item sem cClassTrib', 'Confira o cadastro tributário do produto.'); continue; }
       it.cl = cl;
       if (b.cc.slice(0, 3) !== b.cst) flag('err', `CST ${b.cst} incompatível com o cClassTrib ${b.cc}`, `O cClassTrib começa pelo CST. Para ${b.cc} o CST é ${b.cc.slice(0, 3)} (${cl.d}).`);
       if (!ncmPermitido(cl, it.ncm)) flag('err', `NCM ${fmtNCM(it.ncm)} não pertence ao cClassTrib ${b.cc}`, `${cl.d} (${cl.a || 'LC 214/2025'}) vale só para os NCMs listados em lei. Produto com classificação indevida.`);
@@ -531,7 +554,7 @@ function criarCore(T, DOMP) {
           const esp = aliq[k];
           if (k === 'cbs' && ano >= 2027) {
             if (Math.abs(g.p - 0.9) < 1e-6) P.aliq26 = true;
-            else if (Math.abs(g.p - esp) > 1e-6) P.cbsCen = [g.p, esp];
+            else { it.cbsCenario = g.p; if (Math.abs(g.p - esp) > 1e-6) P.cbsCen = [g.p, esp]; }
           } else if (Math.abs(g.p - esp) > 1e-6) P.aliq.push(`${nome} ${pct(g.p)} (esperado ${pct(esp)})`);
         }
         if (red > 0) {
@@ -547,7 +570,7 @@ function criarCore(T, DOMP) {
       const red0 = (cl.r && cl.r.cbs) || 0;
       if (P.aliq26) flag('err', `Alíquotas de 2026 numa nota de ${ano}`, `CBS de 0,90% era a alíquota de teste de 2026. Em ${ano} a CBS é a alíquota cheia (cenário: ${pct(aliq.cbs)}) e o IBS é 0,05% estadual + 0,05% municipal.${P.aliq.length ? ' Na nota: ' + P.aliq.join('; ') + '.' : ''}`);
       else if (P.aliq.length) flag('err', 'Alíquota errada para o ano', P.aliq.join('; ') + '.');
-      if (P.cbsCen) flag('warn', `CBS de ${pct(P.cbsCen[0])}, diferente do cenário de ${pct(P.cbsCen[1])}`, 'A alíquota da CBS de 2027 ainda não foi fixada pelo Senado. Confira quando sair a resolução.');
+      if (P.cbsCen) flag('warn', tituloCenario(P.cbsCen[0], P.cbsCen[1]), DET_CENARIO, P.cbsCen[0]);
       if (P.semRed.length) flag('err', `Redução de ${red0}% não aplicada`, `O cClassTrib ${b.cc} (${cl.a || 'LC 214'}) prevê redução de ${red0}%, mas a nota não traz o grupo de redução (gRed) em: ${P.semRed.join(', ')}.`);
       if (P.redDif.length) flag('err', 'Percentual de redução diferente do previsto', `O cClassTrib ${b.cc} prevê ${red0}%. Na nota: ${P.redDif.join('; ')}.`);
       if (P.redIndev.length) flag('err', 'Redução sem previsão no cClassTrib', `${b.cc} não tem redução. Na nota: ${P.redIndev.join('; ')}.`);
@@ -572,8 +595,9 @@ function criarCore(T, DOMP) {
     // resumo por item
     const nErr = nf.itens.filter(i => i.status === 'err').length, nWarn = nf.itens.filter(i => i.status === 'warn').length;
     if (nf.itens.length && !nErr && !nWarn && nf.itens.every(i => i.ibs)) add('ok', `Todos os ${nf.itens.length} itens com IBS/CBS corretos`, 'CST e cClassTrib coerentes, NCM compatível, alíquotas do ano e valores conferidos.');
-    for (const it of nf.itens) for (const m of it.msgs) if (m.sev !== 'ok') add(m.sev, m.titulo, m.det, it);
-    if (nf.prot && nf.prot.cStat && nf.prot.cStat !== '100') add('warn', `Situação na Sefaz: ${nf.prot.cStat}`, nf.prot.xMotivo || '');
+    for (const it of nf.itens) for (const m of it.msgs) if (m.sev !== 'ok') add(m.sev, m.titulo, m.det, it, m.cenario);
+    // 100: autorizada; 150: autorizada fora do prazo (contingência)
+    if (nf.prot && nf.prot.cStat && !['100', '150'].includes(nf.prot.cStat)) add('warn', `Situação na Sefaz: ${nf.prot.cStat}`, nf.prot.xMotivo || '');
     if (nf.tpAmb === '2') add('info', 'Nota de homologação (teste)', 'Sem valor fiscal.');
     return { checks, ex };
   }
@@ -610,23 +634,30 @@ function criarCore(T, DOMP) {
     if (/optante/.test(t)) return 'SIMPLES';
     return null;
   }
+  // Leiaute nacional (tiposComplexos_v1.01.xsd): o tomador é o grupo <toma> da DPS. O IBSCBS da DPS traz o que o
+  // prestador informou (CST e cClassTrib, em valores/trib/gIBSCBS); o IBSCBS da NFS-e traz os valores calculados.
   function parseNFSeXML(doc) {
     const inf = first(doc, 'infNFSe'), dps = first(doc, 'infDPS');
-    const prest = child(dps, 'prest'), tom = child(dps, 'tom'), serv = child(dps, 'serv'), regTrib = child(prest, 'regTrib');
+    const prest = child(dps, 'prest'), toma = child(dps, 'toma'), serv = child(dps, 'serv'), regTrib = child(prest, 'regTrib');
     const op = ctxt(regTrib, 'opSimpNac');
-    const ib = first(inf, 'IBSCBS') || first(dps, 'IBSCBS');
+    const ibD = child(dps, 'IBSCBS'), ibN = child(inf, 'IBSCBS');
+    const num = (el, nome) => { const s = txt(el, nome); return s != null ? n(s) : null; };
     const emit = child(inf, 'emit');
     return {
-      tipo: 'NFSE', fonte: 'XML', numero: ctxt(inf, 'nNFSe'), chave: ((inf && inf.getAttribute('Id')) || '').replace(/^NFS/, ''),
+      tipo: 'NFSE', fonte: 'XML', numero: ctxt(inf, 'nNFSe'), chave: ((inf && inf.getAttribute('Id')) || '').replace(/^NFS/, ''), tpAmb: ctxt(dps, 'tpAmb'),
       dhEmi: ctxt(dps, 'dhEmi') || ctxt(inf, 'dhProc') || '', competencia: ctxt(dps, 'dCompet'),
       prest: { doc: ctxt(prest, 'CNPJ') || ctxt(prest, 'CPF') || (emit && (ctxt(emit, 'CNPJ') || ctxt(emit, 'CPF'))), nome: ctxt(prest, 'xNome') || (emit && ctxt(emit, 'xNome')), mun: ctxt(inf, 'xLocEmi') },
       regime: op === '2' ? 'MEI' : op === '3' ? 'SIMPLES' : op === '1' ? 'REGULAR' : null,
-      tom: tom ? { doc: ctxt(tom, 'CNPJ') || ctxt(tom, 'CPF'), cpf: !!child(tom, 'CPF'), nome: ctxt(tom, 'xNome') } : null,
+      tom: toma ? { doc: ctxt(toma, 'CNPJ') || ctxt(toma, 'CPF') || ctxt(toma, 'NIF'), cpf: !!child(toma, 'CPF'), nome: ctxt(toma, 'xNome') } : null,
       serv: { cod: txt(serv, 'cTribNac'), desc: txt(serv, 'xDescServ') },
       valor: n(txt(first(dps, 'vServPrest'), 'vServ')) || n(txt(inf, 'vLiq')),
-      ibs: ib ? { cst: txt(ib, 'CST'), cc: txt(ib, 'cClassTrib'), vCBS: txt(ib, 'vCBS') != null ? n(txt(ib, 'vCBS')) : null, vIBS: txt(ib, 'vIBSTot') != null ? n(txt(ib, 'vIBSTot')) : null, preenchido: !!txt(ib, 'cClassTrib') } : { preenchido: false }
+      descIncond: n(txt(child(dps, 'valores'), 'vDescIncond')), iss: n(ctxt(child(inf, 'valores'), 'vISSQN')),
+      ibs: (ibD || ibN) ? { cst: txt(ibD, 'CST'), cc: txt(ibD, 'cClassTrib'), vCBS: num(ibN, 'vCBS'), vIBS: num(ibN, 'vIBSTot'), preenchido: !!txt(ibD, 'cClassTrib') } : { preenchido: false }
     };
   }
+  // Base do IBS/CBS da NFS-e (calculadora da RFB, BaseCalculoUnificadaNfseService): valor do serviço − desconto
+  // incondicionado − ISSQN (até 2032). PIS/Cofins só saíam em 2026, e a simulação é de 2027.
+  const baseNFSe = ns => Math.max(0, r2((ns.valor || 0) - (ns.descIncond || 0) - (ns.iss || 0)));
   const moeda = s => { if (!s) return null; const m = s.replace(/\s/g, '').match(/-?[\d.]+,\d{2}/); return m ? n(m[0].replace(/\./g, '').replace(',', '.')) : null; };
   function camposPDF(items) {
     const lab = (re, min = -Infinity, max = Infinity) => items.filter(i => re.test(i.s.trim()) && i.y > min && i.y < max).sort((a, b) => b.y - a.y);
@@ -652,6 +683,7 @@ function criarCore(T, DOMP) {
       tom: { doc: get(/^CNPJ \/ CPF \/ NIF$/, yS, yT), nome: get(/^Nome \/ Nome Empresarial$/, yS, yT) },
       serv: { cod: get(/^Código de Tributação Nacional/), desc: get(/^Descrição do Serviço$/) },
       valor: moeda(get(/^VALOR DA OPERAÇÃO \/ SERVIÇO$/)) ?? moeda(get(/^VALOR LÍQUIDO DA NFS-e$/)),
+      descIncond: moeda(val(get(/^Desconto Incondicionado$/))) || 0, iss: moeda(val(get(/^ISSQN Apurado$/))) || 0,
       ibs: { cst: val(cstV), cc: val(ccV), vCBS: moeda(val(get(/^Valor Total Apurado - CBS$/))), vIBS: moeda(val(get(/^Valor Total Apurado - IBS$/))), total: moeda(get(/^Total do IBS\/CBS$/)), preenchido: !!val(ccV) }
     };
   }
@@ -666,7 +698,8 @@ function criarCore(T, DOMP) {
   function dataISO(s) { const m = (s || '').match(/(\d{4})-(\d{2})-(\d{2})/); if (m) return m[0]; const b = (s || '').match(/(\d{2})\/(\d{2})\/(\d{4})/); return b ? `${b[3]}-${b[2]}-${b[1]}` : ''; }
 
   function auditarNFSe(ns, cfg) {
-    const checks = []; const add = (sev, titulo, det) => checks.push({ sev, titulo, det });
+    // cnpj: conferência que depende do CNPJ digitado no topo (o fechamento não a guarda: lá o papel da nota já diz isso)
+    const checks = []; const add = (sev, titulo, det, cnpj) => checks.push(cnpj ? { sev, titulo, det, cnpj } : { sev, titulo, det });
     const d = dataISO(ns.dhEmi || ns.competencia);
     const simples = ns.regime === 'MEI' || ns.regime === 'SIMPLES';
     const desde = simples ? '2027-01-01' : '2026-10-01';
@@ -680,35 +713,59 @@ function criarCore(T, DOMP) {
       }
     } else if (exige) add(simples ? 'err' : 'err', 'NFS-e sem IBS/CBS', `Para prestador ${simples ? 'do Simples/MEI' : 'do regime regular'} os campos são exigidos desde ${dataBR(desde)}.`);
     else add('ok', 'IBS/CBS em branco: correto nesta data', `Prestador ${ns.regime === 'MEI' ? 'MEI' : ns.regime === 'SIMPLES' ? 'do Simples Nacional' : ''} fica fora das alíquotas-teste de 2026; os campos passam a valer em ${dataBR(desde)}.`.replace('  ', ' '));
-    const raiz = (cfg.cnpj || '').replace(/\D/g, '').slice(0, 8);
+    const raiz = docLimpo(cfg.cnpj).slice(0, 8);
     if (ns.tom && ns.tom.doc) {
-      const tdoc = ns.tom.doc.replace(/\D/g, '');
-      if (tdoc.length === 11) add('warn', 'Nota emitida em CPF', 'Serviço contratado no CPF não gera crédito de IBS/CBS para a empresa.');
-      else if (raiz.length === 8 && tdoc.startsWith(raiz)) add('ok', 'Tomador é a sua empresa', 'Nota no CNPJ da empresa: requisito para ter crédito a partir de 2027.');
-      else if (raiz.length === 8) add('warn', 'Tomador não é a sua empresa', `CNPJ do tomador ${fmtDoc(tdoc)} não começa por ${raiz}.`);
+      const tdoc = docLimpo(ns.tom.doc);
+      if (/^\d{11}$/.test(tdoc)) add('warn', 'Nota emitida em CPF', 'Serviço contratado no CPF não gera crédito de IBS/CBS para a empresa.');
+      else if (raiz.length === 8 && tdoc.startsWith(raiz)) add('ok', 'Tomador é a sua empresa', 'Nota no CNPJ da empresa: requisito para ter crédito a partir de 2027.', true);
+      else if (raiz.length === 8) add('warn', 'Tomador não é a sua empresa', `CNPJ do tomador ${fmtDoc(tdoc)} não começa por ${raiz}.`, true);
     }
     if (ns.regime === 'MEI') add('info', 'Prestador MEI: crédito quase nulo a partir de 2027', 'O MEI recolhe IBS/CBS em valor fixo mensal; o crédito para quem contrata é praticamente zero.');
     else if (ns.regime === 'SIMPLES') add('info', 'Prestador do Simples: crédito limitado', 'Se ele não optar por recolher IBS/CBS por fora, o crédito é só a parcela paga no DAS.');
     else if (ns.regime === 'REGULAR') add('info', 'Prestador do regime regular: crédito integral', 'O IBS/CBS destacado vira crédito para a empresa.');
     return { checks, ex: { exige, desde } };
   }
+  // Crédito da NFS-e em 2027: do regime regular, o IBS/CBS sobre a base (com a redução do cClassTrib); do MEI, zero;
+  // do Simples, não estimado. credRegular: o que um prestador do regime regular daria cobrando o mesmo total.
   function simularNFSe(ns, cbs27) {
     const t = (cbs27 + 0.1) / 100; const v = ns.valor || 0;
     const credRegular = r2(v * t / (1 + t));
-    const credito = ns.regime === 'MEI' ? 0 : ns.regime === 'REGULAR' ? r2(v * t) : null;
-    return { credRegular, credito, t };
+    const p = preparoNFSe(ns), v27 = valorItem27(p, aliquotas(2027, cbs27));
+    const credito = ns.regime === 'MEI' ? 0 : ns.regime === 'REGULAR' ? r2(v27.cbs + v27.ibs) : null;
+    return { credRegular, credito, t, base: p.base };
+  }
+  function preparoNFSe(ns) {
+    const cl = ns.ibs && ns.ibs.cc ? T.cc[ns.ibs.cc] : null, red = (cl && cl.r) || {};
+    const semAliq = !!(cl && cl.t === 'Sem alíquota');
+    return { semAliq, base: semAliq ? 0 : baseNFSe(ns), red: { cbs: red.cbs || 0, uf: red.uf || 0, mun: red.mun || 0 } };
   }
 
   // ---------------------------------------------------------------- crédito de compras (digitação manual)
-  // Aceita "1.234,56", "1234,56", "1234.56", "R$ 1.234" e números. Devolve null se não houver número.
-  function lerValor(s) {
+  // Aceita "1.234,56", "1234,56", "1234.56", "1,234.56", "R$ 1.234", "-10" e números. Com os dois separadores, o
+  // último é o decimal. Só ponto: "1.000" e "1.000.000" são milhar; "0.500" e "1.5" são decimais. Com pct
+  // (percentual), um ponto sozinho é sempre decimal ("3.950" = 3,95%). Devolve null se não for um número.
+  function lerValor(s, pct) {
     if (typeof s === 'number') return isFinite(s) ? s : null;
-    let t = String(s == null ? '' : s).replace(/[^\d,.-]/g, '');
-    if (!/\d/.test(t)) return null;
-    if (t.includes(',')) t = t.replace(/\./g, '').replace(',', '.');
-    else if (/^-?\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, '');
+    let t = String(s == null ? '' : s).replace(/R\$/gi, '').replace(/[\s ]/g, '');
+    if (pct) t = t.replace(/%$/, '');
+    if (!/^[-+]?[\d.,]*\d[\d.,]*$/.test(t)) return null;
+    const sinal = t[0] === '-' ? -1 : 1;
+    t = t.replace(/^[-+]/, '');
+    const ultVirg = t.lastIndexOf(','), ultPonto = t.lastIndexOf('.');
+    if (ultVirg >= 0 && ultPonto >= 0) {
+      const dec = ultVirg > ultPonto ? ',' : '.';
+      t = t.split(dec === ',' ? '.' : ',').join('');
+      if (t.split(dec).length > 2) return null;
+      t = t.replace(dec, '.');
+    } else if (ultVirg >= 0) {
+      t = t.split(',').length > 2 ? t.replace(/,/g, '') : t.replace(',', '.');
+    } else if (ultPonto >= 0 && t.split('.').length > 2) {
+      t = t.replace(/\./g, '');
+    } else if (ultPonto >= 0 && !pct && /^[1-9]\d{0,2}\.\d{3}$/.test(t)) {
+      t = t.replace('.', '');
+    }
     const x = parseFloat(t);
-    return isFinite(x) ? x : null;
+    return isFinite(x) ? sinal * x : null;
   }
   // e = { valor, regime: REGULAR|SIMPLES|MEI|PF, incluso (IBS/CBS dentro do valor), red (0/30/60), icms, pSimples (% IBS+CBS do Simples) }
   // Alíquotas de 2027-2028: CBS do cenário + IBS 0,05% UF + 0,05% município. Base arredondada a 2 casas antes de multiplicar,
@@ -777,7 +834,8 @@ function criarCore(T, DOMP) {
         const ini = local + 30 + dv.getUint16(local + 26, true) + dv.getUint16(local + 28, true);
         const dados = u8.subarray(ini, ini + tamComp);
         if (metodo === 0) return dados.slice();
-        if (metodo === 8) return inflar(dados);
+        // o erro do navegador aqui seria "Failed to fetch", que assusta num app que não usa a rede
+        if (metodo === 8) return inflar(dados).catch(e => { throw new Error(typeof DecompressionStream === 'undefined' ? e.message : 'arquivo corrompido dentro do ZIP'); });
         throw new Error(`compressão não suportada (método ${metodo})`);
       } });
     }
@@ -785,25 +843,47 @@ function criarCore(T, DOMP) {
   }
   const TABCRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
   function crc32(u8) { let c = 0xffffffff; for (let i = 0; i < u8.length; i++) c = TABCRC[(c ^ u8[i]) & 0xff] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; }
-  // ZIP sem compressão (método 0), nomes em UTF-8 e data fixa (01/01/1980): o mesmo conteúdo gera os mesmos bytes.
-  function zipSemCompressao(arquivos) {
+  // Monta o ZIP com nomes em UTF-8 e data fixa (01/01/1980): o mesmo conteúdo gera os mesmos bytes.
+  // entradas: [{ nome, dados, crc, tam, metodo }], com dados já compactados quando metodo = 8.
+  function montarZip(entradas) {
     const enc = new TextEncoder(), partes = [], central = []; let off = 0;
-    for (const a of arquivos) {
-      const nome = enc.encode(a.nome), crc = crc32(a.dados), n = a.dados.length;
+    for (const a of entradas) {
+      const nome = enc.encode(a.nome), comp = a.dados.length;
       const h = new DataView(new ArrayBuffer(30));
-      h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x800, true); h.setUint16(12, 0x21, true);
-      h.setUint32(14, crc, true); h.setUint32(18, n, true); h.setUint32(22, n, true); h.setUint16(26, nome.length, true);
+      h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x800, true); h.setUint16(8, a.metodo, true); h.setUint16(12, 0x21, true);
+      h.setUint32(14, a.crc, true); h.setUint32(18, comp, true); h.setUint32(22, a.tam, true); h.setUint16(26, nome.length, true);
       partes.push(new Uint8Array(h.buffer), nome, a.dados);
       const c = new DataView(new ArrayBuffer(46));
-      c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x800, true); c.setUint16(14, 0x21, true);
-      c.setUint32(16, crc, true); c.setUint32(20, n, true); c.setUint32(24, n, true); c.setUint16(28, nome.length, true); c.setUint32(42, off, true);
+      c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x800, true); c.setUint16(10, a.metodo, true); c.setUint16(14, 0x21, true);
+      c.setUint32(16, a.crc, true); c.setUint32(20, comp, true); c.setUint32(24, a.tam, true); c.setUint16(28, nome.length, true); c.setUint32(42, off, true);
       central.push(new Uint8Array(c.buffer), nome);
-      off += 30 + nome.length + n;
+      off += 30 + nome.length + comp;
     }
     const e = new DataView(new ArrayBuffer(22));
-    e.setUint32(0, 0x06054b50, true); e.setUint16(8, arquivos.length, true); e.setUint16(10, arquivos.length, true);
+    e.setUint32(0, 0x06054b50, true); e.setUint16(8, entradas.length, true); e.setUint16(10, entradas.length, true);
     e.setUint32(12, central.reduce((s, x) => s + x.length, 0), true); e.setUint32(16, off, true);
     return concatenar([...partes, ...central, new Uint8Array(e.buffer)]);
+  }
+  // ZIP sem compressão (método 0).
+  function zipSemCompressao(arquivos) {
+    return montarZip(arquivos.map(a => ({ nome: a.nome, dados: a.dados, crc: crc32(a.dados), tam: a.dados.length, metodo: 0 })));
+  }
+  // ZIP compactado (método 8, deflate), para o Excel de um mês inteiro não passar de dezenas de MB. Sem
+  // CompressionStream no navegador, ou se compactar não diminuir a entrada, ela vai sem compressão.
+  async function compactar(dados) {
+    const fluxo = new Blob([dados]).stream().pipeThrough(new CompressionStream('deflate-raw'));
+    return new Uint8Array(await new Response(fluxo).arrayBuffer());
+  }
+  async function zipCompactado(arquivos) {
+    const entradas = [];
+    for (const a of arquivos) {
+      const e = { nome: a.nome, dados: a.dados, crc: crc32(a.dados), tam: a.dados.length, metodo: 0 };
+      if (typeof CompressionStream !== 'undefined' && a.dados.length > 128) {
+        try { const z = await compactar(a.dados); if (z.length < a.dados.length) Object.assign(e, { dados: z, metodo: 8 }); } catch (err) { /* sem deflate-raw: fica sem compressão */ }
+      }
+      entradas.push(e);
+    }
+    return montarZip(entradas);
   }
 
   // ---------------------------------------------------------------- planilha Excel (.xlsx)
@@ -824,7 +904,7 @@ function criarCore(T, DOMP) {
     }
     return `<c r="${ref}" t="inlineStr"${negrito ? ' s="1"' : ''}><is><t xml:space="preserve">${xmlEsc(v)}</t></is></c>`;
   }
-  function gerarXlsx(planilhas) {
+  async function gerarXlsx(planilhas) {
     const enc = new TextEncoder(), arqs = [];
     const add = (nome, xml) => arqs.push({ nome, dados: enc.encode('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' + xml) });
     const NS = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
@@ -853,13 +933,13 @@ function criarCore(T, DOMP) {
       const filtro = n && p.filtro !== false ? `<autoFilter ref="A1:${colLetra(cols.length - 1)}${n + 1}"/>` : '';
       add(`xl/worksheets/sheet${i + 1}.xml`, `<worksheet xmlns="${NS}">${vista}${larguras}<sheetData>${linhas.join('')}</sheetData>${filtro}</worksheet>`);
     });
-    return zipSemCompressao(arqs);
+    return zipCompactado(arqs);
   }
 
   // ---------------------------------------------------------------- fechamento do mês
   // Cada nota vira um registro compacto (o XML não fica guardado), com os itens já preparados para simular 2027.
   // Notas de 2026 são recalculadas com as alíquotas de 2027; de 2027 em diante vale o valor destacado na nota.
-  const raizDe = d => { const s = (d || '').replace(/\D/g, ''); return s.length === 14 ? s.slice(0, 8) : ''; };
+  const raizDe = d => { const s = docLimpo(d); return s.length === 14 ? s.slice(0, 8) : ''; };
   const REGIME_CRT = { 1: 'SIMPLES', 2: 'SIMPLES', 3: 'REGULAR', 4: 'MEI' };
   const DENEGADA = new Set(['110', '205', '301', '302', '303']);
   function decodificarXML(bytes) {
@@ -868,54 +948,72 @@ function criarCore(T, DOMP) {
     const m = /encoding\s*=\s*["']([^"']+)["']/i.exec(cab);
     return new TextDecoder(m && /^(iso-?8859-1|latin-?1|windows-1252|cp1252)$/i.test(m[1]) ? 'windows-1252' : 'utf-8').decode(u8);
   }
+  const rotuloItem = it => `Item ${it.n} · ${it.xProd || ''}`;
   function problemasDe(checks) {
     return checks.filter(c => c.sev === 'err' || c.sev === 'warn').slice(0, 8)
-      .map(c => ({ sev: c.sev, titulo: c.titulo, item: c.item ? `Item ${c.item.n} · ${c.item.xProd || ''}` : '' }));
+      .map(c => ({ sev: c.sev, titulo: c.titulo, item: c.item ? rotuloItem(c.item) : '' }));
+  }
+  // Veredito e problemas que não dependem do cenário da CBS nem do CNPJ digitado: ficam guardados no registro.
+  // A conferência do cenário é refeita em apurar(), com o cenário da hora.
+  function avaliacaoFixa(r) {
+    const checks = r.checks.filter(c => c.cenario == null && !c.cnpj);
+    const v = r.v.palavra === 'Não exigido' ? r.v : veredito(checks);
+    return { veredito: { palavra: v.palavra, cls: v.cls, e: v.e, w: v.w }, problemas: problemasDe(checks) };
+  }
+  // De 2027 em diante vale o IBS/CBS destacado no item. Item sem os valores (sem o grupo gIBSCBS, sem monofásico e
+  // fora de uma classificação sem alíquota) é simulado: o imposto da venda é devido mesmo com a nota errada, e a nota
+  // aparece entre as com problema. A nota só conta como "destacado" quando todos os itens trazem os valores.
+  function valoresDestacados(it) {
+    const b = it.ibs; if (!b) return null;
+    if (b.g) return { cbs: b.cbs ? b.cbs.v : 0, ibs: b.vIBS != null ? b.vIBS : r2(((b.uf && b.uf.v) || 0) + ((b.mun && b.mun.v) || 0)) };
+    if (b.vMono) return { cbs: b.vMono.cbs, ibs: b.vMono.ibs };
+    const cl = b.cc ? T.cc[b.cc] : null;
+    return cl && cl.t === 'Sem alíquota' ? { cbs: 0, ibs: 0 } : null;
   }
   function registroNFe(nf, r) {
-    const real = nf.ano >= 2027;
-    return {
+    const ano27 = nf.ano >= 2027;
+    const itens = nf.itens.map(it => {
+      const p = prepararItem27(it, 2027);
+      return { cfop: it.cfop, v: it.vProd, b: p.base, red: p.red, s: p.semAliq, real: ano27 ? valoresDestacados(it) : null };
+    });
+    // CBS dos itens que a auditoria confere com o cenário (2027 e 2028): apurar() refaz essa conferência com o cenário da hora
+    const cbsItens = nf.itens.filter(it => it.cbsCenario != null).map(it => ({ p: it.cbsCenario, item: rotuloItem(it) }));
+    return Object.assign({
       tipo: 'NFE', modelo: nf.mod === '65' ? 'NFC-e' : 'NF-e', numero: nf.numero, serie: nf.serie, chave: nf.chave || null,
-      data: dataISO(nf.dhEmi), ano: nf.ano, tpNF: nf.tpNF, finNFe: nf.finNFe, sefaz: nf.prot ? nf.prot.cStat : null,
+      data: nf.data, ano: nf.ano, tpNF: nf.tpNF, finNFe: nf.finNFe, tpAmb: nf.tpAmb, sefaz: nf.prot ? nf.prot.cStat : null,
+      importacao: nf.itens.some(it => /^3/.test(it.cfop || '')),
       emit: { doc: nf.emit.doc, nome: nf.emit.nome, regime: REGIME_CRT[nf.emit.crt] || null },
       dest: nf.dest ? { doc: nf.dest.doc, nome: nf.dest.nome } : null,
-      valor: nf.tot.vNF, origem: real ? 'destacado' : 'simulado',
-      veredito: { palavra: r.v.palavra, cls: r.v.cls, e: r.v.e, w: r.v.w }, problemas: problemasDe(r.checks),
-      itens: nf.itens.map(it => {
-        const p = prepararItem27(it, 2027);
-        const b = it.ibs;
-        const valores = real ? { cbs: b && b.cbs ? b.cbs.v : 0, ibs: b ? (b.vIBS != null ? b.vIBS : r2(((b.uf && b.uf.v) || 0) + ((b.mun && b.mun.v) || 0))) : 0 } : null;
-        return { cfop: it.cfop, v: it.vProd, b: p.base, red: p.red, s: p.semAliq, real: valores };
-      })
-    };
+      valor: nf.tot.vNF, origem: itens.length && itens.every(i => i.real) ? 'destacado' : 'simulado', itens, cbsItens
+    }, avaliacaoFixa(r));
   }
   function registroNFSe(ns, r) {
     const data = dataISO(ns.dhEmi || ns.competencia);
-    const cl = ns.ibs && ns.ibs.cc ? T.cc[ns.ibs.cc] : null;
-    const red = (cl && cl.r) || {};
+    const p = preparoNFSe(ns);
     const real = +data.slice(0, 4) >= 2027 && ns.ibs && (ns.ibs.vCBS != null || ns.ibs.vIBS != null);
-    const semAliq = !!(cl && cl.t === 'Sem alíquota');
-    return {
+    return Object.assign({
       tipo: 'NFSE', modelo: 'NFS-e', numero: ns.numero, serie: '', chave: ns.chave || null,
-      data, ano: +data.slice(0, 4) || null, tpNF: null, finNFe: null, sefaz: null,
+      data, ano: +data.slice(0, 4) || null, tpNF: null, finNFe: null, tpAmb: ns.tpAmb || null, sefaz: null,
       emit: { doc: ns.prest.doc, nome: ns.prest.nome, regime: ns.regime || null },
       dest: ns.tom ? { doc: ns.tom.doc, nome: ns.tom.nome } : null,
-      valor: ns.valor || 0, origem: real ? 'destacado' : 'simulado',
-      veredito: { palavra: r.v.palavra, cls: r.v.cls, e: r.v.e, w: r.v.w }, problemas: problemasDe(r.checks),
-      itens: [{ cfop: null, v: ns.valor || 0, b: semAliq ? 0 : (ns.valor || 0), red: { cbs: red.cbs || 0, uf: red.uf || 0, mun: red.mun || 0 }, s: semAliq, real: real ? { cbs: ns.ibs.vCBS || 0, ibs: ns.ibs.vIBS || 0 } : null }]
-    };
+      valor: ns.valor || 0, origem: real ? 'destacado' : 'simulado', cbsItens: [],
+      itens: [{ cfop: null, v: ns.valor || 0, b: p.base, red: p.red, s: p.semAliq, real: real ? { cbs: ns.ibs.vCBS || 0, ibs: ns.ibs.vIBS || 0 } : null }]
+    }, avaliacaoFixa(r));
   }
   // Devolve { registro } para NF-e, NFC-e e NFS-e; { cancelamento: chave } para evento de cancelamento; { ignorado: motivo } no resto.
   function lerParaFechamento(texto, cfg) {
     let doc;
-    try { doc = new DOMP().parseFromString(texto, 'text/xml'); } catch (e) { return { ignorado: 'XML inválido' }; }
-    if (!doc || !doc.documentElement || first(doc, 'parsererror')) return { ignorado: 'XML inválido' };
-    if (first(doc, 'infNFe')) { const nf = parseNFe(doc); return { registro: registroNFe(nf, finalizar(nf, auditarNFe(nf, cfg), cfg)) }; }
-    if (first(doc, 'infNFSe') || first(doc, 'infDPS')) { const ns = parseNFSeXML(doc); return { registro: registroNFSe(ns, finalizar(ns, auditarNFSe(ns, cfg), cfg)) }; }
+    try { doc = lerDocXML(texto); } catch (e) { return { ignorado: 'XML inválido ou incompleto' }; }
+    const nNotas = all(doc, 'infNFe').length;
+    if (nNotas > 1) return { ignorado: `Arquivo com ${nNotas} notas (lote de envio): solte o XML autorizado de cada nota` };
+    if (nNotas) { const nf = parseNFe(doc); return { registro: registroNFe(nf, finalizar(nf, auditarNFe(nf, cfg), cfg)) }; }
+    if (first(doc, 'infNFSe')) { const ns = parseNFSeXML(doc); return { registro: registroNFSe(ns, finalizar(ns, auditarNFSe(ns, cfg), cfg)) }; }
+    if (first(doc, 'infDPS')) return { ignorado: 'DPS (declaração do prestador): o que vale é a NFS-e gerada a partir dela' };
     if (first(doc, 'infEvento') || first(doc, 'infPedReg')) {
       const tp = txt(doc, 'tpEvento'), chNFe = txt(doc, 'chNFe'), chNFSe = txt(doc, 'chNFSe');
       const cancNFe = (tp === '110111' || tp === '110112') && chNFe;
-      const cancNFSe = (first(doc, 'e101101') || first(doc, 'e105102')) && chNFSe;
+      // NFS-e: cancelamento, por substituição, deferido em análise fiscal e por ofício (o e105105, indeferido, não cancela)
+      const cancNFSe = ['e101101', 'e105102', 'e105104', 'e305101'].some(t => first(doc, t)) && chNFSe;
       if (!cancNFe && !cancNFSe) return { ignorado: tp ? `Evento ${tp} (não é cancelamento)` : 'Evento que não é cancelamento' };
       const stats = all(doc, 'cStat').map(e => (e.textContent || '').trim());
       if (cancNFe && stats.length && !stats.some(s => ['135', '136', '155'].includes(s))) return { ignorado: 'Pedido de cancelamento sem registro na Sefaz' };
@@ -934,12 +1032,20 @@ function criarCore(T, DOMP) {
   function papelNota(r, raiz) {
     if (r.cancelada) return 'cancelada';
     if (r.sefaz && DENEGADA.has(r.sefaz)) return 'denegada';
+    if (r.tpAmb === '2') return 'homologacao';
     const e = raizDe(r.emit.doc), d = r.dest ? raizDe(r.dest.doc) : '';
     if (!raiz) return 'outra';
     if (r.tipo === 'NFSE') return d === raiz ? 'compra' : e === raiz ? 'venda' : 'outra';
+    // Nota de crédito (finNFe 5) reduz o débito de quem emite e o crédito de quem recebe; a de débito (6) aumenta.
+    // Vale também a emitida para a própria empresa (estorno, apropriação de crédito), por isso vem antes da transferência.
+    if (r.finNFe === '5' || r.finNFe === '6') {
+      if (e === raiz) return r.finNFe === '5' ? 'notaCredito' : 'notaDebito';
+      if (d === raiz) return r.finNFe === '5' ? 'notaCreditoRec' : 'notaDebitoRec';
+      return 'outra';
+    }
     if (e === raiz && d === raiz) return 'transferencia';
     const dev = r.finNFe === '4';
-    if (e === raiz) return r.tpNF === '0' ? (dev ? 'devVenda' : 'entradaPropria') : (dev ? 'devCompra' : 'venda');
+    if (e === raiz) return r.tpNF === '0' ? (dev ? 'devVenda' : r.importacao ? 'importacao' : 'entradaPropria') : (dev ? 'devCompra' : 'venda');
     if (d === raiz) return r.tpNF === '0' ? 'outra' : (dev ? 'devVenda' : 'compra');
     return 'outra';
   }
@@ -959,6 +1065,25 @@ function criarCore(T, DOMP) {
     return null;
   }
   const PIOR = { bad: 3, warn: 2, neutral: 1, ok: 0 };
+  // Veredito e problemas da nota no cenário da CBS da hora: os guardados no registro mais um alerta por item com a
+  // CBS diferente do cenário (como na auditoria da nota).
+  function avaliacaoAtual(r, cbs27) {
+    const fora = (r.cbsItens || []).filter(c => Math.abs(c.p - cbs27) > 1e-6);
+    if (!fora.length) return { v: r.veredito, problemas: r.problemas };
+    const v = r.veredito;
+    return {
+      v: { palavra: v.e ? 'Não conforme' : 'Com alertas', cls: v.e ? 'bad' : 'warn', e: v.e, w: v.w + fora.length },
+      problemas: r.problemas.concat(fora.map(c => ({ sev: 'warn', titulo: tituloCenario(c.p, cbs27), item: c.item })))
+    };
+  }
+  // Linha da apuração em que cada papel entra. Os que não estão aqui ficam fora (transferência, entrada própria,
+  // cancelada, denegada, homologação, outra).
+  const GRUPO_PAPEL = {
+    venda: 'debito', notaDebito: 'debito',
+    devVenda: 'devVenda', notaCredito: 'devVenda',
+    compra: 'credito', importacao: 'credito', notaDebitoRec: 'credito',
+    devCompra: 'devCompra', notaCreditoRec: 'devCompra'
+  };
   function apurar(registros, o) {
     const a = aliquotas(2027, o.cbs27);
     const zero = () => ({ cbs: 0, ibs: 0 });
@@ -975,28 +1100,32 @@ function criarCore(T, DOMP) {
       const papel = papelNota(r, o.raiz);
       const t = valores27(r, a);
       let efeito = null, credito = null;
-      if (papel === 'venda') { soma(ap.debito, t); efeito = 'debito'; }
-      else if (papel === 'devVenda') { soma(ap.devVenda, t); efeito = 'devVenda'; }
-      else if (papel === 'devCompra') { soma(ap.devCompra, t); efeito = 'devCompra'; }
-      else if (papel === 'compra') {
+      const grupo = GRUPO_PAPEL[papel];
+      if (grupo === 'debito') { soma(ap.debito, t); efeito = 'debito'; }
+      else if (grupo === 'devVenda') { soma(ap.devVenda, t); efeito = 'devVenda'; }
+      else if (grupo === 'devCompra') { soma(ap.devCompra, t); efeito = 'devCompra'; }
+      else if (grupo === 'credito') {
         credito = creditoCompra(r, t);
         if (credito) { soma(ap.credito, credito); efeito = 'credito'; } else { naoEstimado.notas++; naoEstimado.valor += r.valor || 0; efeito = 'naoEstimado'; }
       }
+      const av = avaliacaoAtual(r, o.cbs27);
       cont.total++;
       cont.papel[papel] = (cont.papel[papel] || 0) + 1;
-      cont.veredito[r.veredito.palavra] = (cont.veredito[r.veredito.palavra] || 0) + 1;
+      cont.veredito[av.v.palavra] = (cont.veredito[av.v.palavra] || 0) + 1;
       if (r.data) { if (!de || r.data < de) de = r.data; if (!ate || r.data > ate) ate = r.data; }
-      notas.push({ r, papel, t, efeito, credito });
-      if (papel === 'compra') {
-        const k = r.emit.doc || r.emit.nome || '?';
-        const f = forn.get(k) || { doc: r.emit.doc, nome: r.emit.nome, regime: r.emit.regime, notas: 0, valor: 0, credito: zero(), naoEstimado: 0, pior: 'ok' };
+      notas.push({ r, papel, t, efeito, credito, v: av.v, problemas: av.problemas });
+      if (grupo === 'credito') {
+        // na importação, quem vende é o destinatário estrangeiro da nota de entrada
+        const p = papel === 'importacao' && r.dest ? { doc: r.dest.doc, nome: r.dest.nome, regime: null } : r.emit;
+        const k = p.doc || p.nome || '?';
+        const f = forn.get(k) || { doc: p.doc, nome: p.nome, regime: p.regime, notas: 0, valor: 0, credito: zero(), naoEstimado: 0, pior: 'ok' };
         f.notas++; f.valor += r.valor || 0;
         if (credito) soma(f.credito, credito); else f.naoEstimado++;
-        if (!f.regime && r.emit.regime) f.regime = r.emit.regime;
-        if (PIOR[r.veredito.cls] > PIOR[f.pior]) f.pior = r.veredito.cls;
+        if (!f.regime && p.regime) f.regime = p.regime;
+        if (PIOR[av.v.cls] > PIOR[f.pior]) f.pior = av.v.cls;
         forn.set(k, f);
       }
-      if (['venda', 'compra', 'devVenda', 'devCompra', 'transferencia'].includes(papel)) {
+      if (grupo || papel === 'transferencia') {
         r.itens.forEach((it, i) => {
           if (!it.cfop) return;
           const c = cfops.get(it.cfop) || { cfop: it.cfop, itens: 0, valor: 0, cbs: 0, ibs: 0 };
@@ -1032,10 +1161,11 @@ function criarCore(T, DOMP) {
     }
     return [...cont.values()].sort((x, y) => y.notas - x.notas).slice(0, 5);
   }
+  // CNPJ pode ser alfanumérico (letras nas 12 primeiras posições, emitido desde julho de 2026); CPF é só número.
   function fmtDoc(d) {
-    d = (d || '').replace(/\D/g, '');
+    d = docLimpo(d);
     if (d.length === 14) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`;
-    if (d.length === 11) return `***.${d.slice(3, 6)}.${d.slice(6, 9)}-**`;
+    if (/^\d{11}$/.test(d)) return `***.${d.slice(3, 6)}.${d.slice(6, 9)}-**`;
     return d || '—';
   }
 
@@ -1044,9 +1174,22 @@ function criarCore(T, DOMP) {
     return { e, w, cls: e ? 'bad' : w ? 'warn' : 'ok', palavra: e ? 'Não conforme' : w ? 'Com alertas' : 'Conforme' };
   }
 
+  // O navegador não lança erro com XML quebrado ou cortado: devolve um documento com <parsererror> e o que conseguiu
+  // ler. Espaço ou BOM antes de <?xml também quebra a leitura, então sai antes.
+  function lerDocXML(texto) {
+    let doc;
+    try { doc = new DOMP().parseFromString(String(texto).replace(/^[\s﻿]+/, ''), 'text/xml'); } catch (e) { doc = null; }
+    if (!doc || !doc.documentElement || first(doc, 'parsererror')) throw new Error('XML inválido ou incompleto: o arquivo pode estar corrompido ou cortado.');
+    return doc;
+  }
   function analisarXML(texto, cfg) {
-    const doc = new DOMP().parseFromString(texto, 'text/xml');
-    if (first(doc, 'infNFe')) { const nf = parseNFe(doc); const a = auditarNFe(nf, cfg); return finalizar(nf, a, cfg); }
+    const doc = lerDocXML(texto);
+    const nNotas = all(doc, 'infNFe').length;
+    if (nNotas) {
+      const nf = parseNFe(doc); const a = auditarNFe(nf, cfg);
+      if (nNotas > 1) a.checks.unshift({ sev: 'warn', titulo: `Arquivo com ${nNotas} notas`, det: 'Só a primeira foi conferida. Solte o XML de cada nota separado.' });
+      return finalizar(nf, a, cfg);
+    }
     if (first(doc, 'infNFSe') || first(doc, 'infDPS')) { const ns = parseNFSeXML(doc); const a = auditarNFSe(ns, cfg); return finalizar(ns, a, cfg); }
     throw new Error('Este XML não parece uma NF-e, NFC-e ou NFS-e (não achei infNFe nem infNFSe).');
   }
@@ -1066,11 +1209,11 @@ function criarCore(T, DOMP) {
     let v = veredito(a.checks);
     const semIBS = doc.tipo === 'NFE' && doc.itens.every(i => !i.ibs) && !a.ex.exige;
     if (semIBS) v = { e: 0, w: 0, cls: 'neutral', palavra: 'Não exigido' };
-    const raiz = (cfg.cnpj || '').replace(/\D/g, '').slice(0, 8);
+    const raiz = docLimpo(cfg.cnpj).slice(0, 8);
     let direcao = null;
     if (raiz.length === 8) {
-      if (doc.tipo === 'NFE') direcao = (doc.emit.doc || '').startsWith(raiz) ? 'venda' : (doc.dest && (doc.dest.doc || '').startsWith(raiz)) ? 'compra' : null;
-      if (doc.tipo === 'NFSE') direcao = (doc.tom && (doc.tom.doc || '').replace(/\D/g, '').startsWith(raiz)) ? 'compra' : ((doc.prest.doc || '').replace(/\D/g, '').startsWith(raiz) ? 'venda' : null);
+      if (doc.tipo === 'NFE') direcao = docLimpo(doc.emit.doc).startsWith(raiz) ? 'venda' : (doc.dest && docLimpo(doc.dest.doc).startsWith(raiz)) ? 'compra' : null;
+      if (doc.tipo === 'NFSE') direcao = (doc.tom && docLimpo(doc.tom.doc).startsWith(raiz)) ? 'compra' : (docLimpo(doc.prest.doc).startsWith(raiz) ? 'venda' : null);
     }
     return { doc, checks: a.checks, ex: a.ex, v, direcao };
   }
@@ -1094,24 +1237,33 @@ function criarCore(T, DOMP) {
 
   const elCnpj = document.getElementById('cnpj');
   elCnpj.value = cfg.cnpj;
-  elCnpj.addEventListener('input', () => { cfg.cnpj = elCnpj.value; store.set('rtc.cnpj', cfg.cnpj); reanalisar(); renderFech(); });
+  // digitando: espera uma pausa curta antes de reconferir as notas abertas e o fechamento
+  let esperaCnpj = 0;
+  elCnpj.addEventListener('input', () => {
+    cfg.cnpj = elCnpj.value; store.set('rtc.cnpj', cfg.cnpj);
+    clearTimeout(esperaCnpj); esperaCnpj = setTimeout(() => { reanalisar(); renderFech(); }, 300);
+  });
   const segBtns = Array.from(document.querySelectorAll('[data-cbs]'));
   function syncSeg() { segBtns.forEach(b => b.setAttribute('aria-pressed', String(Math.abs(parseFloat(b.dataset.cbs) - cfg.cbs27) < 1e-6))); }
   segBtns.forEach(b => b.addEventListener('click', () => setCbs(parseFloat(b.dataset.cbs))));
   function setCbs(v) { cfg.cbs27 = Math.round(v * 10) / 10; store.set('rtc.cbs27', String(cfg.cbs27)); syncSeg(); reanalisar(); syncCbsCalc(); renderCalc(); renderFech(); }
   syncSeg();
 
-  // entrada de arquivos
+  // entrada de arquivos. leituras: arquivos ainda sendo lidos (a atualização automática espera terminar)
+  let leituras = 0;
+  const temArquivos = e => !!(e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files'));
   const drop = document.getElementById('drop'), input = document.getElementById('file');
-  drop.addEventListener('click', () => input.click());
-  drop.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.click(); } });
+  drop.addEventListener('click', () => abrirSeletor(input));
+  drop.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); abrirSeletor(input); } });
   input.addEventListener('change', () => { lerArquivos(input.files); input.value = ''; });
   ['dragenter', 'dragover'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.add('over'); }));
   ['dragleave', 'drop'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.remove('over'); }));
   drop.addEventListener('drop', e => lerArquivos(e.dataTransfer.files));
-  document.addEventListener('dragover', e => e.preventDefault());
-  // arquivo solto fora das áreas de soltar: vai para a ferramenta aberta (na calculadora, não faz nada)
+  // arquivo solto fora das áreas de soltar: vai para a ferramenta aberta (na calculadora, não faz nada).
+  // Texto arrastado para um campo segue o comportamento normal do navegador.
+  document.addEventListener('dragover', e => { if (temArquivos(e)) e.preventDefault(); });
   document.addEventListener('drop', e => {
+    if (!temArquivos(e)) return;
     const fd = document.getElementById('f-drop');
     if (drop.contains(e.target) || (fd && fd.contains(e.target))) return;
     e.preventDefault();
@@ -1122,20 +1274,18 @@ function criarCore(T, DOMP) {
   document.getElementById('ex-1').addEventListener('click', () => adicionarXML('EXEMPLO · nfe_2027_com_erros.xml', document.getElementById('ex-erros').textContent, true));
   document.getElementById('ex-2').addEventListener('click', () => adicionarXML('EXEMPLO · nfe_2027_conforme.xml', document.getElementById('ex-ok').textContent, true));
 
+  // Lê os bytes e decide pelo conteúdo: PDF, ZIP (vai para o fechamento) ou XML, que pode vir em UTF-8 ou ISO-8859-1.
   function lerArquivos(lista) {
     Array.from(lista || []).forEach(f => {
       const nome = f.name || 'arquivo';
-      if (/\.pdf$/i.test(nome) || f.type === 'application/pdf') {
-        const r = new FileReader();
-        r.onload = () => lerPDF(nome, new Uint8Array(r.result));
-        r.onerror = () => adicionarErro(nome, 'Não consegui ler o arquivo.');
-        r.readAsArrayBuffer(f);
-      } else {
-        const r = new FileReader();
-        r.onload = () => adicionarXML(nome, String(r.result), false);
-        r.onerror = () => adicionarErro(nome, 'Não consegui ler o arquivo.');
-        r.readAsText(f);
-      }
+      leituras++;
+      f.arrayBuffer().then(buf => {
+        const u8 = new Uint8Array(buf);
+        const sig = u8.length >= 4 ? ((u8[0] << 24) | (u8[1] << 16) | (u8[2] << 8) | u8[3]) >>> 0 : 0;
+        if (sig === 0x25504446 || /\.pdf$/i.test(nome)) return lerPDF(nome, u8);
+        if (sig === 0x504b0304 || sig === 0x504b0506) { adicionarErro(nome, 'é um arquivo ZIP. Para conferir as notas de um ZIP, use o "Fechamento do mês" ou extraia os XML e solte-os aqui.'); return; }
+        adicionarXML(nome, core.decodificarXML(u8), false);
+      }, () => adicionarErro(nome, 'Não consegui ler o arquivo.')).finally(() => { leituras--; });
     });
   }
   function novo(nome, extra) { const a = Object.assign({ id: ++seq, nome }, extra); state.arquivos.push(a); state.sel = state.arquivos.length - 1; return a; }
@@ -1165,7 +1315,14 @@ function criarCore(T, DOMP) {
 
   // ----------------------------------------------------------- render
   const SEVG = { err: '✕', warn: '!', ok: '✓', info: 'i' };
-  function render() { renderTabs(); renderOut(); }
+  // Redesenha mantendo o foco do teclado no mesmo controle (pelo id): sem isso, quem navega pelo teclado volta para
+  // o começo da página a cada aba ou mês escolhido.
+  function manterFoco(desenhar) {
+    const ativo = document.activeElement, id = ativo && ativo !== document.body ? ativo.id : '';
+    desenhar();
+    if (id && !document.body.contains(ativo)) { const novo = document.getElementById(id); if (novo) novo.focus(); }
+  }
+  function render() { manterFoco(() => { renderTabs(); renderOut(); }); }
   function renderTabs() {
     const el = document.getElementById('tabs');
     el.innerHTML = state.arquivos.map((a, i) => {
@@ -1183,9 +1340,15 @@ function criarCore(T, DOMP) {
     if (a.erro) { out.innerHTML = `<div class="err-msg">${esc(a.nome)}: ${esc(a.erro)}</div>`; return; }
     const r = a.res;
     const rel = '<div class="acoes-rel"><button type="button" id="a-pdf">Salvar PDF</button><button type="button" id="a-xlsx">Exportar Excel</button></div>';
-    if (r.doc.tipo === 'NFE') out.innerHTML = rel + viewNFe(a, r);
-    else if (r.doc.tipo === 'NFSE') out.innerHTML = rel + viewNFSe(a, r);
-    else out.innerHTML = rel + viewDANFE(a, r);
+    // uma nota com algo inesperado não pode deixar na tela o painel da nota anterior
+    try {
+      if (r.doc.tipo === 'NFE') out.innerHTML = rel + viewNFe(a, r);
+      else if (r.doc.tipo === 'NFSE') out.innerHTML = rel + viewNFSe(a, r);
+      else out.innerHTML = rel + viewDANFE(a, r);
+    } catch (e) {
+      out.innerHTML = `<div class="err-msg">${esc(a.nome)}: não consegui mostrar esta nota (${esc(e.message || e)}).</div>`;
+      return;
+    }
     out.querySelector('#a-pdf').addEventListener('click', () => window.print());
     out.querySelector('#a-xlsx').addEventListener('click', exportarAuditoria);
     out.querySelectorAll('[data-copy]').forEach(b => b.addEventListener('click', () => {
@@ -1214,7 +1377,7 @@ function criarCore(T, DOMP) {
   }
   function chaveHTML(ch) {
     if (!ch) return '—';
-    const g = ch.replace(/(\d{4})(?=\d)/g, '$1 ');
+    const g = ch.replace(/(.{4})(?=.)/g, '$1 ');
     return `<span class="chave">${esc(g)}</span><button type="button" class="copy" data-copy="${esc(ch)}">Copiar</button>`;
   }
   function dirTag(d) { return d ? `<span class="dir">${d === 'venda' ? 'Venda da empresa' : 'Compra da empresa'}</span>` : ''; }
@@ -1305,7 +1468,7 @@ function criarCore(T, DOMP) {
             <div class="wide"><dt>Serviço ${ns.serv.cod ? '· ' + esc(ns.serv.cod) : ''}</dt><dd>${esc(ns.serv.desc || '—')}</dd></div>
             <div><dt>IBS/CBS na nota</dt><dd class="mono">${ns.ibs.preenchido ? esc((ns.ibs.cst || '?') + ' / ' + ns.ibs.cc) : 'Em branco'}</dd></div>
             <div><dt>Total IBS/CBS</dt><dd class="mono">${brl(ns.ibs.total != null ? ns.ibs.total : ((ns.ibs.vCBS || 0) + (ns.ibs.vIBS || 0)))}</dd></div>
-            <div class="wide"><dt>Chave de acesso</dt><dd>${ns.chave ? `<span class="chave">${esc(ns.chave.replace(/(\d{5})(?=\d)/g, '$1 '))}</span><button type="button" class="copy" data-copy="${esc(ns.chave)}">Copiar</button>` : '—'}</dd></div>
+            <div class="wide"><dt>Chave de acesso</dt><dd>${ns.chave ? `<span class="chave">${esc(ns.chave.replace(/(.{5})(?=.)/g, '$1 '))}</span><button type="button" class="copy" data-copy="${esc(ns.chave)}">Copiar</button>` : '—'}</dd></div>
           </dl>
         </section>
       </div>
@@ -1346,6 +1509,7 @@ function criarCore(T, DOMP) {
     store.set('rtc.modo', modo);
     modos.forEach(b => b.setAttribute('aria-selected', String(b.dataset.modo === modo)));
     ['auditar', 'fechamento', 'credito'].forEach(x => { $('modo-' + x).hidden = modo !== x; });
+    if (modo === 'fechamento' && fechPendente) renderFech();
   }
   modos.forEach(b => b.addEventListener('click', () => { setModo(b.dataset.modo); if (b.dataset.modo === 'credito') $('c-valor').focus(); }));
 
@@ -1372,7 +1536,7 @@ function criarCore(T, DOMP) {
       desc: $('c-desc').value.trim(), valor: core.lerValor($('c-valor').value), regime: reg,
       incluso: reg === 'REGULAR' ? calc.incl : true, red: reg === 'REGULAR' ? calc.red : 0,
       icms: reg === 'REGULAR' ? (core.lerValor($('c-icms').value) || 0) : 0,
-      pSimples: reg === 'SIMPLES' ? core.lerValor($('c-sn').value) : null
+      pSimples: reg === 'SIMPLES' ? core.lerValor($('c-sn').value, true) : null
     };
   }
   function syncCalc() {
@@ -1484,21 +1648,35 @@ function criarCore(T, DOMP) {
     ['c-valor', 'c-icms', 'c-sn', 'c-desc'].forEach(id => { $(id).value = ''; });
     calc.incl = true; calc.red = 0; syncCalc(); renderCalc(); $('c-valor').focus();
   });
-  $('c-cbs').addEventListener('input', () => setCbs(parseFloat($('c-cbs').value)));
+  // arrastando, só a calculadora acompanha; ao soltar (change), vale para o app todo, como nos outros controles
+  $('c-cbs').addEventListener('input', () => { cfg.cbs27 = Math.round(parseFloat($('c-cbs').value) * 10) / 10; $('c-cbs-v').textContent = pct(cfg.cbs27); renderCalc(); });
+  $('c-cbs').addEventListener('change', () => setCbs(parseFloat($('c-cbs').value)));
   syncCalc(); syncCbsCalc(); renderCalc();
 
   // ----------------------------------------------------------- fechamento do mês
   // Soltar o mês inteiro (XML, ZIP, pasta ou PDF de NFS-e): cada nota vira um registro compacto e a apuração
   // simulada de 2027 sai das vendas, compras, devoluções e cancelamentos. Só o XML das notas com problema fica
   // guardado (para abrir no auditor), até 30 MB.
-  const PAPEL = { venda: 'Venda', compra: 'Compra', devVenda: 'Devolução de venda', devCompra: 'Devolução de compra', transferencia: 'Transferência entre filiais', entradaPropria: 'Entrada emitida pela empresa', outra: 'Não envolve a empresa', cancelada: 'Cancelada', denegada: 'Denegada' };
+  const PAPEL = { venda: 'Venda', compra: 'Compra', importacao: 'Importação', devVenda: 'Devolução de venda', devCompra: 'Devolução de compra',
+    notaCredito: 'Nota de crédito emitida', notaDebito: 'Nota de débito emitida', notaCreditoRec: 'Nota de crédito recebida', notaDebitoRec: 'Nota de débito recebida',
+    transferencia: 'Transferência entre filiais', entradaPropria: 'Entrada emitida pela empresa', outra: 'Não envolve a empresa', cancelada: 'Cancelada', denegada: 'Denegada', homologacao: 'Homologação (sem valor fiscal)' };
+  // rótulos das linhas da apuração: as notas de crédito e de débito (finNFe 5 e 6) entram nas linhas das devoluções e do débito/crédito
+  function rotulosApuracao(ap) {
+    const n = k => ap.cont.papel[k] || 0;
+    return {
+      debito: n('notaDebito') ? 'Débito das vendas e notas de débito' : 'Débito das vendas',
+      devVenda: n('notaCredito') ? '(−) Devoluções de vendas e notas de crédito' : '(−) Devoluções de vendas',
+      credito: n('notaDebitoRec') ? '(−) Crédito das compras e notas de débito recebidas' : '(−) Crédito das compras',
+      devCompra: n('notaCreditoRec') ? '(+) Devoluções de compras e notas de crédito recebidas' : '(+) Devoluções de compras'
+    };
+  }
   const EFEITO = { debito: 'Débito', devVenda: 'Reduz o débito', credito: 'Crédito', naoEstimado: 'Crédito não estimado (Simples)', devCompra: 'Reduz o crédito' };
   const REGIME_NOME = { REGULAR: 'Regime regular', SIMPLES: 'Simples Nacional', MEI: 'MEI' };
   const SIT = { ok: 'OK', warn: 'Alerta', bad: 'Erro', neutral: '—' };
   const fech = { registros: [], chaves: new Set(), cancelados: new Set(), ignorados: [], repetidas: 0, textos: new Map(), bytesTextos: 0, fila: [], processando: false, feitos: 0, total: 0, mes: '', seq: 0 };
   const LIMITE_TEXTOS = 30 * 1024 * 1024;
   const IGNORAR = /^(\.|desktop\.ini$|thumbs\.db$)/i;
-  const raizEmpresa = () => (cfg.cnpj || '').replace(/\D/g, '').slice(0, 8);
+  const raizEmpresa = () => String(cfg.cnpj || '').toUpperCase().replace(/[^0-9A-Z]/g, '').slice(0, 8); // CNPJ pode ter letras
   const fmtRaiz = r => `${r.slice(0, 2)}.${r.slice(2, 5)}.${r.slice(5, 8)}`;
   const pausa = () => new Promise(r => setTimeout(r, 0));
   const chipSit = cls => ({ ok: 's-ok', warn: 's-warn', bad: 's-err' }[cls] || 's-info');
@@ -1530,13 +1708,13 @@ function criarCore(T, DOMP) {
     if (!dt) return;
     // as entradas têm de ser pegas durante o evento: depois dele a lista do navegador se esvazia
     const entradas = dt.items ? Array.from(dt.items).map(i => (i.kind === 'file' && i.webkitGetAsEntry ? i.webkitGetAsEntry() : null)) : [];
-    if (entradas.some(x => x && x.isDirectory)) lerPastaArrastada(entradas).then(fechAdicionar);
+    if (entradas.some(x => x && x.isDirectory)) { leituras++; lerPastaArrastada(entradas).then(fechAdicionar).finally(() => { leituras--; }); }
     else fechAdicionar(Array.from(dt.files || []).map(f => ({ nome: f.name, arquivo: f })));
   }
   function fechAdicionar(itens) {
     itens = itens.filter(it => !IGNORAR.test(it.nome.split('/').pop()));
     if (!itens.length) return;
-    fech.fila.push(...itens);
+    for (const it of itens) fech.fila.push(it); // sem push(...itens): com mais de ~120 mil arquivos, o espalhamento estoura a pilha
     fech.total += itens.length;
     if (fech.processando) { atualizarProgresso(); return; }
     processarFila();
@@ -1545,12 +1723,14 @@ function criarCore(T, DOMP) {
     fech.processando = true;
     renderFech();
     let ultimo = Date.now();
-    while (fech.fila.length) {
-      const it = fech.fila.shift();
+    // percorre por índice (shift() numa fila de dezenas de milhares fica lento) e solta cada item já lido
+    for (let i = 0; i < fech.fila.length; i++) {
+      const it = fech.fila[i]; fech.fila[i] = null;
       try { await processarItem(it); } catch (e) { fech.ignorados.push({ arquivo: it.nome, motivo: 'Não consegui ler: ' + ((e && e.message) || e) }); }
       fech.feitos++;
       if (Date.now() - ultimo > 120) { atualizarProgresso(); await pausa(); ultimo = Date.now(); }
     }
+    fech.fila = [];
     fech.registros.forEach(r => { r.cancelada = !!(r.chave && fech.cancelados.has(r.chave)); });
     fech.processando = false; fech.feitos = 0; fech.total = 0;
     renderFech();
@@ -1647,20 +1827,20 @@ function criarCore(T, DOMP) {
       <div class="acoes-rel"><button type="button" id="f-xlsx">Exportar Excel</button><button type="button" id="f-pdf">Salvar PDF</button><button type="button" id="f-limpar">Limpar</button></div></div>`;
   }
   function blocoApuracao(ap) {
-    const a = ap.apuracao, res = a.resultado, credor = res.total < 0;
+    const a = ap.apuracao, res = a.resultado, credor = res.total < 0, rot = rotulosApuracao(ap);
     const linha = (rot, v) => `<tr><td>${rot}</td><td class="n">${brl(v.cbs)}</td><td class="n">${brl(v.ibs)}</td><td class="n">${brl(v.total)}</td></tr>`;
     return `<section class="box sec" aria-labelledby="h-ap">
       <h3 id="h-ap"><span>Apuração simulada de 2027</span><span class="lbl">CBS ${esc(pct(cfg.cbs27))} + IBS 0,10%</span></h3>
       <div><div class="lbl">${credor ? 'Saldo credor: crédito que sobra para os meses seguintes' : 'A empresa pagaria'}</div><div class="big">${brl(Math.abs(res.total))}</div>
         <p class="note" style="margin-top:8px">CBS ${brl(res.cbs)} · IBS ${brl(res.ibs)}. CBS só abate CBS, e IBS só abate IBS.</p></div>
       <div class="tw"><table class="compacta"><thead><tr><th></th><th>CBS</th><th>IBS</th><th>Total</th></tr></thead><tbody>
-        ${linha('Débito das vendas', a.debito)}
-        ${a.devVenda.total ? linha('(−) Devoluções de vendas', a.devVenda) : ''}
-        ${linha('(−) Crédito das compras', a.credito)}
-        ${a.devCompra.total ? linha('(+) Devoluções de compras', a.devCompra) : ''}
+        ${linha(rot.debito, a.debito)}
+        ${a.devVenda.total ? linha(rot.devVenda, a.devVenda) : ''}
+        ${linha(rot.credito, a.credito)}
+        ${a.devCompra.total ? linha(rot.devCompra, a.devCompra) : ''}
       </tbody><tfoot><tr><td>= ${credor ? 'Saldo credor' : 'A pagar'}</td><td class="n">${brl(res.cbs)}</td><td class="n">${brl(res.ibs)}</td><td class="n">${brl(res.total)}</td></tr></tfoot></table></div>
       ${ap.naoEstimado.notas ? `<p class="note"><b>${plural(ap.naoEstimado.notas, 'compra', 'compras')} de fornecedor do Simples ou de regime não identificado</b> (${brl(ap.naoEstimado.valor)}) sem crédito estimado: o crédito delas é só o que o fornecedor recolhe no DAS, e a partir de 2027 vem destacado na nota.</p>` : ''}
-      <p class="note">Notas de 2026 foram recalculadas com as alíquotas de 2027 (o IBS/CBS de 2026 é teste e não é recolhido). Notas de 2027 em diante entram com o valor destacado nelas.</p>
+      <p class="note">Notas de 2026 foram recalculadas com as alíquotas de 2027 (o IBS/CBS de 2026 é teste e não é recolhido). Notas de 2027 em diante entram com o valor destacado nelas; item sem IBS/CBS destacado é simulado, e a nota aparece entre as com problema.</p>
       <div class="slider"><label class="lbl" for="f-cbs">CBS 2027</label><input id="f-cbs" type="range" min="8" max="12" step="0.1" value="${cfg.cbs27}"><span class="mono">${pct(cfg.cbs27)}</span></div>
     </section>`;
   }
@@ -1675,12 +1855,14 @@ function criarCore(T, DOMP) {
       <h3 id="h-cont"><span>Notas lidas</span><span class="lbl">${plural(ap.cont.total, 'nota', 'notas')}${fech.mes ? ' no mês' : ''}</span></h3>
       <dl class="facts">
         <div><dt>Vendas</dt><dd class="mono">${n('venda')}</dd></div>
-        <div><dt>Compras</dt><dd class="mono">${n('compra')}</dd></div>
+        <div><dt>Compras</dt><dd class="mono">${n('compra') + n('importacao')}</dd></div>
         <div><dt>Devoluções</dt><dd class="mono">${n('devVenda') + n('devCompra')}</dd></div>
+        ${n('notaCredito') + n('notaDebito') + n('notaCreditoRec') + n('notaDebitoRec') ? `<div><dt>Notas de crédito e de débito</dt><dd class="mono">${n('notaCredito') + n('notaDebito') + n('notaCreditoRec') + n('notaDebitoRec')}</dd></div>` : ''}
         <div><dt>Transferências entre filiais</dt><dd class="mono">${n('transferencia')}</dd></div>
         <div><dt>Canceladas</dt><dd class="mono">${n('cancelada')}</dd></div>
-        <div><dt>Fora da apuração</dt><dd class="mono">${n('entradaPropria') + n('outra') + n('denegada')}</dd></div>
+        <div><dt>Fora da apuração</dt><dd class="mono">${n('entradaPropria') + n('outra') + n('denegada') + n('homologacao')}</dd></div>
       </dl>
+      ${n('homologacao') ? `<p class="note">${plural(n('homologacao'), 'nota de homologação (ambiente de teste, sem valor fiscal) ficou', 'notas de homologação (ambiente de teste, sem valor fiscal) ficaram')} fora da apuração.</p>` : ''}
       <div class="chips">${Object.entries(ap.cont.veredito).map(([p, q]) => `<span class="chip ${chipSit(CLS[p])}">${esc(p)}: ${q}</span>`).join('')}</div>
       ${fech.repetidas ? `<p class="note">${plural(fech.repetidas, 'arquivo repetido (mesma chave de acesso) contado', 'arquivos repetidos (mesma chave de acesso) contados')} uma vez só.</p>` : ''}
       ${fech.ignorados.length ? blocoIgnorados() : ''}
@@ -1694,14 +1876,14 @@ function criarCore(T, DOMP) {
     return esc(linhas.slice(0, 3).join(' · ') + (linhas.length > 3 ? ` · e mais ${linhas.length - 3}` : ''));
   }
   function blocoProblemas(ap) {
-    const ps = ap.notas.filter(x => x.r.veredito.cls === 'bad' || x.r.veredito.cls === 'warn').sort((a, b) => (b.r.veredito.cls === 'bad') - (a.r.veredito.cls === 'bad'));
+    const ps = ap.notas.filter(x => x.v.cls === 'bad' || x.v.cls === 'warn').sort((a, b) => (b.v.cls === 'bad') - (a.v.cls === 'bad'));
     const h = `<h3 id="h-prob"><span>Notas com problemas</span><span class="lbl">${ps.length}</span></h3>`;
     if (!ps.length) return `<section class="box sec" aria-labelledby="h-prob">${h}<p class="note">Nenhuma nota com erro ou alerta.</p></section>`;
     const MAX = 30;
-    return `<section class="box sec" aria-labelledby="h-prob">${h}<ul class="probs">${ps.slice(0, MAX).map(({ r, papel }) => `<li>
-        <div class="topo"><span><span class="chip ${chipSit(r.veredito.cls)}">${esc(r.veredito.palavra)}</span> <b>${esc(r.modelo)} ${esc(r.numero || '')}</b> · ${esc(dataBR(r.data))} · ${esc(PAPEL[papel])}</span>${fech.textos.has(r.id) ? `<button type="button" class="copy" data-abrir="${r.id}">Abrir no auditor</button>` : ''}</div>
+    return `<section class="box sec" aria-labelledby="h-prob">${h}<ul class="probs">${ps.slice(0, MAX).map(({ r, papel, v, problemas }) => `<li>
+        <div class="topo"><span><span class="chip ${chipSit(v.cls)}">${esc(v.palavra)}</span> <b>${esc(r.modelo)} ${esc(r.numero || '')}</b> · ${esc(dataBR(r.data))} · ${esc(PAPEL[papel])}</span>${fech.textos.has(r.id) ? `<button type="button" class="copy" data-abrir="${r.id}">Abrir no auditor</button>` : ''}</div>
         <div class="sub2">${esc(contraparte(r, papel))}</div>
-        <div class="det">${resumoProblemas(r.problemas)}</div></li>`).join('')}</ul>
+        <div class="det">${resumoProblemas(problemas)}</div></li>`).join('')}</ul>
       ${ps.length > MAX ? `<p class="note">Mostrando ${MAX} de ${ps.length}. A lista completa vai no Excel.</p>` : ''}</section>`;
   }
   function blocoFornecedores(ap) {
@@ -1723,11 +1905,19 @@ function criarCore(T, DOMP) {
   function blocoNotas(ap) {
     const MAX = 200, ns = ap.notas;
     const linhaCls = { ok: 'ok', warn: 'warn', bad: 'err' };
-    return `<section class="box sec" aria-labelledby="h-notas"><h3 id="h-notas"><span>Todas as notas</span><span class="lbl">${ns.length}</span></h3><div class="tw"><table><thead><tr><th>Data</th><th>Nota</th><th>Papel</th><th>Contraparte</th><th>Valor</th><th>IBS/CBS 2027</th><th>Situação</th></tr></thead><tbody>${ns.slice(0, MAX).map(x => `<tr class="r-${linhaCls[x.r.veredito.cls] || 'info'}"><td class="c">${esc(dataBR(x.r.data))}</td><td class="c">${esc(x.r.modelo)} ${esc(x.r.numero || '')}</td><td>${esc(PAPEL[x.papel])}</td><td>${esc(contraparte(x.r, x.papel))}</td><td class="n">${brl(x.r.valor)}</td><td class="n">${valorNaApuracao(x)}</td><td><span class="chip ${chipSit(x.r.veredito.cls)}">${esc(x.r.veredito.palavra)}</span></td></tr>`).join('')}</tbody></table></div>${ns.length > MAX ? `<p class="note">Mostrando ${MAX} de ${ns.length}. A lista completa vai no Excel.</p>` : ''}</section>`;
+    return `<section class="box sec" aria-labelledby="h-notas"><h3 id="h-notas"><span>Todas as notas</span><span class="lbl">${ns.length}</span></h3><div class="tw"><table><thead><tr><th>Data</th><th>Nota</th><th>Papel</th><th>Contraparte</th><th>Valor</th><th>IBS/CBS 2027</th><th>Situação</th></tr></thead><tbody>${ns.slice(0, MAX).map(x => `<tr class="r-${linhaCls[x.v.cls] || 'info'}"><td class="c">${esc(dataBR(x.r.data))}</td><td class="c">${esc(x.r.modelo)} ${esc(x.r.numero || '')}</td><td>${esc(PAPEL[x.papel])}</td><td>${esc(contraparte(x.r, x.papel))}</td><td class="n">${brl(x.r.valor)}</td><td class="n">${valorNaApuracao(x)}</td><td><span class="chip ${chipSit(x.v.cls)}">${esc(x.v.palavra)}</span></td></tr>`).join('')}</tbody></table></div>${ns.length > MAX ? `<p class="note">Mostrando ${MAX} de ${ns.length}. A lista completa vai no Excel.</p>` : ''}</section>`;
   }
+  // Com o fechamento escondido (outra ferramenta aberta), só marca para redesenhar quando ele voltar: num mês grande,
+  // redesenhar a cada tecla do CNPJ ou passo da CBS deixava a tela lenta.
+  let fechPendente = false;
   function renderFech() {
     const el = $('f-out');
     if (!el) return;
+    if (modoAtual !== 'fechamento') { fechPendente = true; return; }
+    fechPendente = false;
+    manterFoco(() => desenharFech(el));
+  }
+  function desenharFech(el) {
     el.innerHTML = viewFechamento();
     el.querySelectorAll('[data-empresa]').forEach(b => b.addEventListener('click', () => {
       cfg.cnpj = fmtRaiz(b.dataset.empresa); elCnpj.value = cfg.cnpj; store.set('rtc.cnpj', cfg.cnpj); reanalisar(); renderFech();
@@ -1751,13 +1941,13 @@ function criarCore(T, DOMP) {
     }
   }
   const fDrop = $('f-drop'), fFile = $('f-file'), fPasta = $('f-pasta');
-  fDrop.addEventListener('click', () => fFile.click());
-  fDrop.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fFile.click(); } });
+  fDrop.addEventListener('click', () => abrirSeletor(fFile));
+  fDrop.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); abrirSeletor(fFile); } });
   ['dragenter', 'dragover'].forEach(t => fDrop.addEventListener(t, e => { e.preventDefault(); fDrop.classList.add('over'); }));
   ['dragleave', 'drop'].forEach(t => fDrop.addEventListener(t, e => { e.preventDefault(); fDrop.classList.remove('over'); }));
   fDrop.addEventListener('drop', fechSoltar);
   fFile.addEventListener('change', () => { fechAdicionar(Array.from(fFile.files).map(f => ({ nome: f.name, arquivo: f }))); fFile.value = ''; });
-  $('f-escolher-pasta').addEventListener('click', () => fPasta.click());
+  $('f-escolher-pasta').addEventListener('click', () => abrirSeletor(fPasta));
   fPasta.addEventListener('change', () => { fechAdicionar(Array.from(fPasta.files).map(f => ({ nome: f.webkitRelativePath || f.name, arquivo: f }))); fPasta.value = ''; });
   renderFech();
 
@@ -1771,6 +1961,15 @@ function criarCore(T, DOMP) {
     a.href = url; a.download = nome; a.hidden = true;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 30000);
+  }
+  // gera o .xlsx (a compactação é assíncrona) e baixa; um clique de cada vez
+  let gerandoXlsx = false;
+  async function baixarXlsx(nome, planilhas) {
+    if (gerandoXlsx) return;
+    gerandoXlsx = true;
+    try { baixar(nome, await core.gerarXlsx(planilhas), XLSX_MIME); }
+    catch (e) { alert(`Não foi possível gerar o Excel: ${e.message}`); }
+    finally { gerandoXlsx = false; }
   }
   // cabeçalho do relatório impresso, para Salvar PDF pelo botão ou pelo Ctrl+P
   window.addEventListener('beforeprint', () => {
@@ -1803,7 +2002,7 @@ function criarCore(T, DOMP) {
         { nome: 'Itens', colunas: [{ titulo: 'Item', largura: 6 }, { titulo: 'Código', largura: 12 }, { titulo: 'Produto', largura: 42 }, { titulo: 'NCM', largura: 12 }, { titulo: 'CFOP', largura: 8 }, { titulo: 'CST', largura: 7 }, { titulo: 'cClassTrib', largura: 11 }, { titulo: 'Base', tipo: 'moeda' }, { titulo: 'CBS na nota', tipo: 'moeda' }, { titulo: 'CBS calculada', tipo: 'moeda' }, { titulo: `IBS + CBS ${anoSim}`, tipo: 'moeda' }, { titulo: 'Situação', largura: 10 }],
           linhas: d.itens.map((it, k) => { const b = it.ibs, p = sim.porItem[k]; return [it.n, it.cProd, it.xProd, fmtNCM(it.ncm), it.cfop, b ? b.cst : '', b ? b.cc : '', b && b.g ? b.vBC : it.baseEsp, b && b.cbs ? b.cbs.v : null, b && b.cbs && b.cbs.vEsp != null ? b.cbs.vEsp : null, core.r2(p.cbs + p.ibs), GRAV[it.status] || '']; }) }
       ];
-      arquivo = `auditoria-${modelo.toLowerCase().replace('-', '')}-${d.numero}`;
+      arquivo = `auditoria-${modelo.toLowerCase().replace('-', '')}-${d.numero || 'sem-numero'}`;
     } else if (d.tipo === 'NFSE') {
       const sim = core.simularNFSe(d, cfg.cbs27);
       planilhas = [
@@ -1820,7 +2019,7 @@ function criarCore(T, DOMP) {
       planilhas = [{ nome: 'Resumo', filtro: false, colunas: colsResumo, linhas: [['Documento', 'PDF de NF-e/NFC-e (DANFE)'], ['Chave de acesso', d.chave || ''], ['Valor total', brl(d.valor)], ['Situação', r.v.palavra], ['Gerado em', agora()]] }, conferencias];
       arquivo = 'auditoria-danfe';
     }
-    baixar(`${arquivo}.xlsx`, core.gerarXlsx(planilhas), XLSX_MIME);
+    return baixarXlsx(`${arquivo}.xlsx`, planilhas);
   }
 
   function exportarCredito() {
@@ -1834,35 +2033,35 @@ function criarCore(T, DOMP) {
       return [e.desc || '', REG[e.regime], e.regime === 'REGULAR' && e.red ? e.red : null, r.pago, e.regime === 'REGULAR' ? c.base : null, c && c.cbs != null ? c.cbs : null, c && c.ibs != null ? c.ibs : null, c ? c.total : null, r.custo, r.regular.total, obs];
     });
     const r2 = core.r2;
-    baixar(`credito-compras-${hojeISO()}.xlsx`, core.gerarXlsx([
+    return baixarXlsx(`credito-compras-${hojeISO()}.xlsx`, [
       { nome: 'Compras', colunas: [{ titulo: 'Descrição', largura: 36 }, { titulo: 'Fornecedor', largura: 18 }, { titulo: 'Redução', tipo: 'pct', largura: 10 }, { titulo: 'Total pago', tipo: 'moeda' }, { titulo: 'Base do IBS/CBS', tipo: 'moeda' }, { titulo: 'Crédito de CBS', tipo: 'moeda' }, { titulo: 'Crédito de IBS', tipo: 'moeda' }, { titulo: 'Crédito total', tipo: 'moeda' }, { titulo: 'Custo real', tipo: 'moeda' }, { titulo: 'Crédito se fosse regime regular', tipo: 'moeda', largura: 18 }, { titulo: 'Observação', largura: 50 }],
         linhas, total: ['Total', '', null, r2(t.pago), null, r2(t.cbs), r2(t.ibs), r2(t.cred), r2(t.custo), r2(t.reg), ''] },
       { nome: 'Premissas', filtro: false, colunas: colsResumo, linhas: [['CBS de 2027 (cenário)', pct(cfg.cbs27)], ['IBS de 2027', '0,05% estadual + 0,05% municipal'], ['Gerado em', agora()], ['Observação', 'Estimativa. O crédito real é o IBS/CBS destacado na nota do fornecedor. Ferramenta de apoio: não substitui a contabilidade.']] }
-    ]), XLSX_MIME);
+    ]);
   }
 
   function exportarFechamento() {
     if (!fech.registros.length) return;
-    const raiz = raizEmpresa(), ap = apuracaoAtual(), a = ap.apuracao;
+    const raiz = raizEmpresa(), ap = apuracaoAtual(), a = ap.apuracao, rot = rotulosApuracao(ap);
     const lin = (rot, v) => [rot, v.cbs, v.ibs, v.total];
     const nota = r => `${r.modelo} ${r.numero || ''}`.trim();
     const problemas = [];
-    ap.notas.forEach(({ r, papel }) => r.problemas.forEach(p => problemas.push([r.data, nota(r), PAPEL[papel], r.emit.nome || '', fmtDoc(r.emit.doc), r.veredito.palavra, GRAV[p.sev], p.titulo, p.item])));
-    baixar(`fechamento-${fech.mes || (ap.periodo.ate || hojeISO()).slice(0, 7)}.xlsx`, core.gerarXlsx([
+    ap.notas.forEach(x => x.problemas.forEach(p => problemas.push([x.r.data, nota(x.r), PAPEL[x.papel], x.r.emit.nome || '', fmtDoc(x.r.emit.doc), x.v.palavra, GRAV[p.sev], p.titulo, p.item])));
+    return baixarXlsx(`fechamento-${fech.mes || (ap.periodo.ate || hojeISO()).slice(0, 7)}.xlsx`, [
       { nome: 'Resumo', filtro: false, colunas: [{ titulo: 'Apuração simulada de 2027', largura: 46 }, { titulo: 'CBS', tipo: 'moeda', largura: 16 }, { titulo: 'IBS', tipo: 'moeda', largura: 16 }, { titulo: 'Total', tipo: 'moeda', largura: 16 }],
         linhas: [
-          lin('Débito das vendas', a.debito), lin('(−) Devoluções de vendas', a.devVenda), lin('(−) Crédito das compras', a.credito), lin('(+) Devoluções de compras', a.devCompra),
+          lin(rot.debito, a.debito), lin(rot.devVenda, a.devVenda), lin(rot.credito, a.credito), lin(rot.devCompra, a.devCompra),
           lin(a.resultado.total < 0 ? '= Saldo credor' : '= A pagar', a.resultado), [],
           ['Empresa (raiz do CNPJ)', fmtRaiz(raiz)], ['Período das notas', ap.periodo.de ? `${dataBR(ap.periodo.de)} a ${dataBR(ap.periodo.ate)}` : '—'],
           ['CBS de 2027 (cenário)', pct(cfg.cbs27)], ['IBS de 2027', '0,05% estadual + 0,05% municipal'],
           ['Notas consideradas', String(ap.cont.total)], ...Object.entries(ap.cont.papel).map(([p, q]) => [`   ${PAPEL[p]}`, String(q)]),
           ['Compras sem crédito estimado (Simples ou regime não identificado)', ap.naoEstimado.notas ? `${plural(ap.naoEstimado.notas, 'nota', 'notas')} · ${brl(ap.naoEstimado.valor)}` : '0'],
           ['Arquivos repetidos', String(fech.repetidas)], ['Arquivos ignorados', String(fech.ignorados.length)], ['Gerado em', agora()],
-          ['Observação', 'Notas de 2026 recalculadas com as alíquotas de 2027; de 2027 em diante, valor destacado na nota. Ferramenta de apoio: não substitui a contabilidade.']] },
+          ['Observação', 'Notas de 2026 recalculadas com as alíquotas de 2027; de 2027 em diante, valor destacado na nota (item sem IBS/CBS destacado é simulado). Ferramenta de apoio: não substitui a contabilidade.']] },
       { nome: 'Notas', colunas: [{ titulo: 'Data', tipo: 'data', largura: 11 }, { titulo: 'Modelo', largura: 8 }, { titulo: 'Número', largura: 10 }, { titulo: 'Série', largura: 6 }, { titulo: 'Papel', largura: 22 }, { titulo: 'Na apuração', largura: 26 }, { titulo: 'Emitente', largura: 34 }, { titulo: 'CNPJ/CPF do emitente', largura: 20 }, { titulo: 'Destinatário', largura: 34 }, { titulo: 'CNPJ/CPF do destinatário', largura: 20 }, { titulo: 'Valor', tipo: 'moeda' }, { titulo: 'CBS 2027', tipo: 'moeda' }, { titulo: 'IBS 2027', tipo: 'moeda' }, { titulo: 'Origem do valor', largura: 14 }, { titulo: 'Situação', largura: 14 }, { titulo: 'Erros', tipo: 'inteiro', largura: 7 }, { titulo: 'Alertas', tipo: 'inteiro', largura: 8 }, { titulo: 'Problemas', largura: 70 }, { titulo: 'Chave de acesso', largura: 50 }, { titulo: 'Arquivo', largura: 40 }],
         linhas: ap.notas.map(x => {
           const r = x.r, v = x.efeito && x.efeito !== 'naoEstimado' ? (x.credito || x.t) : null;
-          return [r.data, r.modelo, r.numero || '', r.serie || '', PAPEL[x.papel], x.efeito ? EFEITO[x.efeito] : 'Fora da apuração', r.emit.nome || '', fmtDoc(r.emit.doc), r.dest ? r.dest.nome || '' : '', r.dest ? fmtDoc(r.dest.doc) : '', r.valor, v ? v.cbs : null, v ? v.ibs : null, r.origem === 'destacado' ? 'Destacado na nota' : 'Simulado', r.veredito.palavra, r.veredito.e, r.veredito.w, r.problemas.map(p => p.titulo).join(' · '), r.chave || '', r.arquivo];
+          return [r.data, r.modelo, r.numero || '', r.serie || '', PAPEL[x.papel], x.efeito ? EFEITO[x.efeito] : 'Fora da apuração', r.emit.nome || '', fmtDoc(r.emit.doc), r.dest ? r.dest.nome || '' : '', r.dest ? fmtDoc(r.dest.doc) : '', r.valor, v ? v.cbs : null, v ? v.ibs : null, r.origem === 'destacado' ? 'Destacado na nota' : 'Simulado', x.v.palavra, x.v.e, x.v.w, x.problemas.map(p => p.titulo).join(' · '), r.chave || '', r.arquivo];
         }) },
       { nome: 'Fornecedores', colunas: [{ titulo: 'Fornecedor', largura: 40 }, { titulo: 'CNPJ', largura: 20 }, { titulo: 'Regime', largura: 18 }, { titulo: 'Notas', tipo: 'inteiro', largura: 8 }, { titulo: 'Valor', tipo: 'moeda' }, { titulo: 'Crédito de CBS', tipo: 'moeda' }, { titulo: 'Crédito de IBS', tipo: 'moeda' }, { titulo: 'Crédito total', tipo: 'moeda' }, { titulo: 'Notas sem crédito estimado', tipo: 'inteiro', largura: 14 }, { titulo: 'Pior situação', largura: 12 }],
         linhas: ap.fornecedores.map(f => [f.nome || '', fmtDoc(f.doc), REGIME_NOME[f.regime] || 'Não identificado', f.notas, f.valor, f.credito.cbs, f.credito.ibs, f.credito.total, f.naoEstimado, SIT[f.pior] || '']) },
@@ -1870,7 +2069,7 @@ function criarCore(T, DOMP) {
         linhas: ap.cfops.map(c => [c.cfop, c.itens, c.valor, c.cbs, c.ibs]) },
       { nome: 'Problemas', colunas: [{ titulo: 'Data', tipo: 'data', largura: 11 }, { titulo: 'Nota', largura: 14 }, { titulo: 'Papel', largura: 22 }, { titulo: 'Emitente', largura: 34 }, { titulo: 'CNPJ/CPF do emitente', largura: 20 }, { titulo: 'Situação', largura: 14 }, { titulo: 'Gravidade', largura: 10 }, { titulo: 'Problema', largura: 60 }, { titulo: 'Item', largura: 40 }], linhas: problemas },
       { nome: 'Ignorados', colunas: [{ titulo: 'Arquivo', largura: 60 }, { titulo: 'Motivo', largura: 60 }], linhas: fech.ignorados.map(i => [i.arquivo, i.motivo]) }
-    ]), XLSX_MIME);
+    ]);
   }
 
   setModo(store.get('rtc.modo'));
@@ -1887,8 +2086,16 @@ function criarCore(T, DOMP) {
     set(k, v) { try { sessionStorage.setItem(k, v); return true; } catch (e) { return false; } },
     del(k) { try { sessionStorage.removeItem(k); } catch (e) { /* sem armazenamento */ } }
   };
-  let ultimaVerificacao = 0, pendente = false, ultimaAcao = Date.now();
-  ['pointerdown', 'keydown', 'input', 'wheel', 'touchstart'].forEach(t => document.addEventListener(t, () => { ultimaAcao = Date.now(); }, { capture: true, passive: true }));
+  let ultimaVerificacao = 0, pendente = false, ultimaAcao = Date.now(), dialogoDesde = 0, avisoDispensado = false;
+  // conta como uso: clique, tecla, digitação, rolagem, toque e arrastar ou soltar arquivos
+  ['pointerdown', 'keydown', 'input', 'change', 'wheel', 'touchstart', 'dragenter', 'dragover', 'drop'].forEach(t => document.addEventListener(t, () => { ultimaAcao = Date.now(); }, { capture: true, passive: true }));
+  // Com o seletor de arquivos do sistema aberto, a página segue visível, mas sem foco: não recarrega até ele fechar
+  // (escolha, cancelamento ou a janela voltar a ter foco). Depois de 30 min sem sinal, deixa de esperar.
+  function abrirSeletor(el) { dialogoDesde = Date.now(); el.click(); }
+  const fimDialogo = () => { if (dialogoDesde) { dialogoDesde = 0; ultimaAcao = Date.now(); } };
+  window.addEventListener('focus', fimDialogo);
+  document.addEventListener('change', fimDialogo, true);
+  document.addEventListener('cancel', fimDialogo, true);
 
   function verificarVersao() {
     if (!/^\d+x\d+$/.test(VERSAO) || !/^https?:$/.test(location.protocol) || navigator.onLine === false) return;
@@ -1908,11 +2115,31 @@ function criarCore(T, DOMP) {
   function tentarAtualizar() {
     if (!pendente) return;
     if (!document.hidden && Date.now() - ultimaAcao < 30000) return; // a pessoa está usando: espera parar ou sair da aba
+    if (dialogoDesde && Date.now() - dialogoDesde < 30 * 60000) return; // seletor de arquivos aberto
+    if (leituras > 0 || navigator.onLine === false) return;             // arquivos sendo lidos, ou sem internet
     pendente = false;
     // o fechamento do mês não cabe na sessionStorage: com ele aberto, avisa em vez de recarregar
-    if (fech.registros.length || fech.processando) { mostrarAviso('Saiu uma versão nova do app. Ao atualizar, o fechamento do mês precisará ser refeito.', true); return; }
-    if (guardarSessao()) recarregar();
-    else mostrarAviso('Saiu uma versão nova do app. Ao atualizar, as notas abertas precisarão ser soltas de novo.', true);
+    if (fech.registros.length || fech.processando) {
+      if (!avisoDispensado) mostrarAviso('Saiu uma versão nova do app. Ao atualizar, o fechamento do mês precisará ser refeito.', true);
+      return;
+    }
+    // recarrega só se o site responder (sem internet, recarregar trocaria o app pela página de erro do navegador)
+    siteNoAr(versao => {
+      if (versao === VERSAO) return;
+      if (guardarSessao()) recarregar();
+      else mostrarAviso('Saiu uma versão nova do app. Ao atualizar, as notas abertas precisarão ser soltas de novo.', true);
+    }, () => { pendente = true; });
+  }
+  function siteNoAr(sim, nao) {
+    const img = new Image();
+    img.onload = () => sim(`${img.naturalWidth}x${img.naturalHeight}`);
+    img.onerror = nao;
+    img.src = 'versao.svg?t=' + Date.now();
+  }
+  // botão "Atualizar agora": guarda as notas abertas e o que foi digitado (o fechamento não cabe) e recarrega
+  function atualizarAgora(botao) {
+    botao.disabled = true;
+    siteNoAr(() => { guardarSessao(); recarregar(); }, () => { botao.disabled = false; mostrarAviso('Sem conexão com o site agora. Tente de novo quando a internet voltar.', true); });
   }
   function recarregar() {
     sess.set('rtc.atualizou', String(Date.now()));
@@ -1948,10 +2175,15 @@ function criarCore(T, DOMP) {
   }
   function mostrarAviso(texto, comBotao) {
     const el = $('aviso-versao');
-    el.innerHTML = `<span>${esc(texto)}</span>${comBotao ? '<button type="button" id="aviso-atualizar">Atualizar agora</button>' : ''}`;
+    el.innerHTML = `<span>${esc(texto)}</span>${comBotao ? '<span class="acoes-aviso"><button type="button" id="aviso-atualizar">Atualizar agora</button><button type="button" id="aviso-depois">Depois</button></span>' : ''}`;
     el.hidden = false;
-    if (comBotao) $('aviso-atualizar').addEventListener('click', recarregar);
-    else setTimeout(() => { el.hidden = true; }, 6000);
+    // espaço no fim da página, para o aviso não cobrir as últimas linhas
+    document.body.style.paddingBottom = (el.offsetHeight + 28) + 'px';
+    const fechar = () => { el.hidden = true; document.body.style.paddingBottom = ''; };
+    if (comBotao) {
+      $('aviso-atualizar').addEventListener('click', e => atualizarAgora(e.currentTarget));
+      $('aviso-depois').addEventListener('click', () => { avisoDispensado = true; fechar(); });
+    } else setTimeout(fechar, 6000);
   }
 
   // tira o ?v= da barra de endereço depois de uma atualização

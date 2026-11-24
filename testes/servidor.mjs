@@ -18,7 +18,8 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.svg': 'image/svg+xml', '.x
 export function servir(pasta) {
   const s = { raiz: resolve(pasta), log: [] };
   const srv = http.createServer((req, res) => {
-    const caminho = decodeURIComponent(req.url.split('?')[0]);
+    let caminho;
+    try { caminho = decodeURIComponent(req.url.split('?')[0]); } catch { res.writeHead(400, CABECALHOS); res.end('400'); return; }
     s.log.push(caminho);
     const arq = resolve(join(s.raiz, caminho === '/' ? 'index.html' : caminho));
     if (!(arq + sep).startsWith(s.raiz + sep) || !existsSync(arq) || statSync(arq).isDirectory()) { res.writeHead(404, CABECALHOS); res.end('404'); return; }

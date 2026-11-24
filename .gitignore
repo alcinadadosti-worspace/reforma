@@ -3,3 +3,6 @@ public/
 auditor-notas.html
 
 node_modules/
+
+# cache do Python
+__pycache__/

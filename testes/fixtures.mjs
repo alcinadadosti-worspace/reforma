@@ -32,9 +32,11 @@ export function chaveNFe({ data, emit, mod = '55', numero }) {
   return '27' + data.slice(2, 4) + data.slice(5, 7) + emit.padStart(14, '0') + mod + '001' + String(numero).padStart(9, '0') + '1' + '12345678' + '0';
 }
 
-export function nfe({ numero = 1, data = '2026-11-10', emit = EMPRESA, crt = '3', dest = { cpf: '11111111111' }, tpNF = '1', finNFe = '1', mod = '55', cStat = null } = {}) {
+// tpAmb 1 (produção) por padrão: nota de homologação (2) fica fora do fechamento.
+export function nfe({ numero = 1, data = '2026-11-10', emit = EMPRESA, crt = '3', dest = { cpf: '11111111111' }, tpNF = '1', finNFe = '1', mod = '55', cStat = null, tpAmb = '1' } = {}) {
   const chave = chaveNFe({ data, emit, mod, numero });
   let x = base
+    .replace(/<tpAmb>\d<\/tpAmb>/, `<tpAmb>${tpAmb}</tpAmb>`)
     .replace(/Id="NFe\d{44}"/, `Id="NFe${chave}"`)
     .replace(/<nNF>\d+<\/nNF>/, `<nNF>${numero}</nNF>`)
     .replace(/<mod>\d+<\/mod>/, `<mod>${mod}</mod>`)
@@ -62,13 +64,28 @@ export function cancelamento(chave) {
   };
 }
 
-// NFS-e nacional mínima. opSimpNac: 1 = regime regular, 2 = MEI, 3 = Simples Nacional.
-export function nfse({ numero = 28, data = '2026-11-11', prest = '66666666000166', nome = 'PRESTADOR FICTICIO', opSimpNac = '2', tomador = EMPRESA, valor = '670.00' } = {}) {
+// NFS-e nacional mínima, no leiaute oficial (tiposComplexos_v1.01.xsd e a nota de exemplo da calculadora da RFB):
+// tomador em <toma>; CST e cClassTrib no IBSCBS da DPS; valores calculados no IBSCBS da NFS-e; ISSQN em infNFSe/valores.
+// opSimpNac: 1 = regime regular, 2 = MEI, 3 = Simples Nacional.
+export function nfse({ numero = 28, data = '2026-11-11', prest = '66666666000166', nome = 'PRESTADOR FICTICIO', opSimpNac = '2', tomador = EMPRESA, valor = '670.00',
+  iss = null, cClassTrib = null, vCBS = null, vIBS = null, tpAmb = '1' } = {}) {
   const chave = ('2706703' + prest + String(numero).padStart(13, '0')).padEnd(50, '0').slice(0, 50);
+  const ibsNFSe = vCBS != null ? `<IBSCBS><cLocalidadeIncid>2706703</cLocalidadeIncid><xLocalidadeIncid>Penedo</xLocalidadeIncid><pRedutor>0.00</pRedutor><totCIBS><vTotNF>${valor}</vTotNF><gIBS><vIBSTot>${vIBS}</vIBSTot></gIBS><gCBS><vCBS>${vCBS}</vCBS></gCBS></totCIBS></IBSCBS>` : '';
+  const ibsDPS = cClassTrib ? `<IBSCBS><finNFSe>0</finNFSe><indFinal>0</indFinal><cIndOp>070101</cIndOp><valores><trib><gIBSCBS><CST>${cClassTrib.slice(0, 3)}</CST><cClassTrib>${cClassTrib}</cClassTrib></gIBSCBS></trib></valores></IBSCBS>` : '';
   return {
     nome: `nfse_${numero}.xml`, chave,
     texto: `<?xml version="1.0" encoding="UTF-8"?>
-<NFSe xmlns="http://www.sped.fazenda.gov.br/nfse" versao="1.00"><infNFSe Id="NFS${chave}"><xLocEmi>Penedo</xLocEmi><nNFSe>${numero}</nNFSe><dhProc>${data}T10:00:00-03:00</dhProc><emit><CNPJ>${prest}</CNPJ><xNome>${nome}</xNome></emit><valores><vLiq>${valor}</vLiq></valores><DPS versao="1.00"><infDPS Id="DPS${chave}"><dhEmi>${data}T10:00:00-03:00</dhEmi><dCompet>${data}</dCompet><prest><CNPJ>${prest}</CNPJ><xNome>${nome}</xNome><regTrib><opSimpNac>${opSimpNac}</opSimpNac></regTrib></prest><tom><CNPJ>${tomador}</CNPJ><xNome>LOJA FICTICIA DE COSMETICOS LTDA</xNome></tom><serv><cServ><cTribNac>140201</cTribNac><xDescServ>SERVICO FICTICIO PARA TESTE</xDescServ></cServ></serv><valores><vServPrest><vServ>${valor}</vServ></vServPrest></valores></infDPS></DPS></infNFSe></NFSe>
+<NFSe xmlns="http://www.sped.fazenda.gov.br/nfse" versao="1.01"><infNFSe Id="NFS${chave}"><xLocEmi>Penedo</xLocEmi><nNFSe>${numero}</nNFSe><dhProc>${data}T10:00:00-03:00</dhProc><emit><CNPJ>${prest}</CNPJ><xNome>${nome}</xNome></emit><valores>${iss != null ? `<vBC>${valor}</vBC><pAliqAplic>5.00</pAliqAplic><vISSQN>${iss}</vISSQN>` : ''}<vLiq>${valor}</vLiq></valores>${ibsNFSe}<DPS versao="1.01"><infDPS Id="DPS${chave}"><tpAmb>${tpAmb}</tpAmb><dhEmi>${data}T10:00:00-03:00</dhEmi><dCompet>${data}</dCompet><prest><CNPJ>${prest}</CNPJ><xNome>${nome}</xNome><regTrib><opSimpNac>${opSimpNac}</opSimpNac></regTrib></prest><toma><CNPJ>${tomador}</CNPJ><xNome>LOJA FICTICIA DE COSMETICOS LTDA</xNome></toma><serv><cServ><cTribNac>140201</cTribNac><xDescServ>SERVICO FICTICIO PARA TESTE</xDescServ></cServ></serv><valores><vServPrest><vServ>${valor}</vServ></vServPrest></valores>${ibsDPS}</infDPS></DPS></infNFSe></NFSe>
+`
+  };
+}
+
+// Evento de cancelamento de NFS-e (e101101 cancelamento, e105102 por substituição, e105104 deferido, e305101 por ofício).
+export function cancelamentoNFSe(chave, codigo = 'e101101') {
+  return {
+    nome: `cancelamento_nfse_${chave.slice(-12)}.xml`,
+    texto: `<?xml version="1.0" encoding="UTF-8"?>
+<evento xmlns="http://www.sped.fazenda.gov.br/nfse" versao="1.01"><infEvento Id="EVT${chave}001"><nSeqEvento>1</nSeqEvento><dhProc>2026-11-20T10:00:00-03:00</dhProc><pedRegEvento versao="1.01"><infPedReg Id="PRE${chave}001"><tpAmb>1</tpAmb><dhEvento>2026-11-20T10:00:00-03:00</dhEvento><chNFSe>${chave}</chNFSe><nPedRegEvento>1</nPedRegEvento><${codigo}><xDesc>Cancelamento ficticio para teste</xDesc></${codigo}></infPedReg></pedRegEvento></infEvento></evento>
 `
   };
 }
